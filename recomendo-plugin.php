@@ -9,15 +9,15 @@ class Recomendo_Plugin {
     function __construct( $options ) {
 
         $this->options = $options;
-		$this->woo_options = get_option( 'recomendo_woo_options' );
-		$this->general_options = get_option( 'recomendo_general_options');
+        $this->woo_options = get_option( 'recomendo_woo_options' );
+        $this->general_options = get_option( 'recomendo_general_options');
         // set up the hooks, actions and register styles, scripts, etc.
         $this->register();
         $this->client = new Recomendo_Client();
 
-		$this->bg_user_copy = new Recomendo_Background_User_Copy();
-		$this->bg_item_copy = new Recomendo_Background_Item_Copy();
-		$this->bg_order_copy = new Recomendo_Background_Order_Copy();
+        $this->bg_user_copy = new Recomendo_Background_User_Copy();
+        $this->bg_item_copy = new Recomendo_Background_Item_Copy();
+        $this->bg_order_copy = new Recomendo_Background_Order_Copy();
 
     } // end of method -> __construct
 
@@ -25,7 +25,7 @@ class Recomendo_Plugin {
 
     public static function is_event_server_up() {
 
-		// static function - need to initialize client
+        // static function - need to initialize client
         $client = new Recomendo_Client();
 
         $response = $client->get_event_server_status();
@@ -84,24 +84,24 @@ class Recomendo_Plugin {
         add_action( 'wp', array( $this, 'record_view_event' ) );
         // Record add_to_cart events
         add_action('woocommerce_add_cart_item_data', array( $this, 'record_add_to_cart_event' ), 10, 2);
-		// Record Buy Event
+        // Record Buy Event
         add_action( 'woocommerce_thankyou', array( $this, 'record_buy_event' ) );
-		// Record category_pref
+        // Record category_pref
         add_action( 'wp', array( $this, 'record_category_pref' ) );
         // Register and load the widget
         add_action( 'widgets_init', array( $this, 'load_widget' ) );
         // Creates the [recomendo] shortcode
         add_shortcode( 'recomendo', array( $this, 'show_shortcode' ) );
-		// Show recommendations in WooCommerce related products
-		if ( isset( $this->woo_options['woo_show_related'] ) )
-			add_filter( 'woocommerce_related_products', array( $this, 'show_related_products' ), 10, 1);
+        // Show recommendations in WooCommerce related products
+        if ( isset( $this->woo_options['woo_show_related'] ) )
+            add_filter( 'woocommerce_related_products', array( $this, 'show_related_products' ), 10, 1);
         // Show recommendations in the cart
         if ( isset( $this->woo_options['woo_show_cart'] ) )
             add_action( 'woocommerce_after_cart_table', array( $this, 'show_cart_recommendations'), 10, 1);
         // UPDATE PRODUCT IS FEATURED on  Woocommerce admin panel
         if ( isset( $this->options['post_type'] ) && $this->options['post_type'] == 'product' ) {
-        		add_action( 'woocommerce_product_set_visibility', array( $this, 'add_item' ), 10, 1 );
-		}
+                add_action( 'woocommerce_product_set_visibility', array( $this, 'add_item' ), 10, 1 );
+        }
 
     } //end of method
 
@@ -122,11 +122,11 @@ class Recomendo_Plugin {
         // ignore requests from this wordpress server... cron or other plugins
         #if ( $_SERVER['SERVER_ADDR'] == $_SERVER['REMOTE_ADDR'] ) return TRUE;
 
-		if( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-        		$transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'] . $_SERVER['HTTP_X_FORWARDED_FOR'] ;
-		} else {
-			$transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'];
-		}
+        if( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+                $transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'] . $_SERVER['HTTP_X_FORWARDED_FOR'] ;
+        } else {
+            $transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'];
+        }
 
         $cookies_generated = get_transient( $transient );
         if ( $cookies_generated > 1 ) return TRUE;
@@ -140,10 +140,10 @@ class Recomendo_Plugin {
                                 'curl',
                                 'facebook',
                                 'fetch',
-								'amazon',
-								'wordpress',
+                                'amazon',
+                                'wordpress',
                                 'wget',
-								'go-http-client',
+                                'go-http-client',
                                 'trustpilot'
                                 );
 
@@ -156,6 +156,30 @@ class Recomendo_Plugin {
         return FALSE;
     }
 
+    public function is_robot_allowed() {
+
+        if ( ! isset( $this->general_options['allow_seo'] ) ) return FALSE;
+
+        // User lowercase string for comparison.
+        $user_agent = strtolower($_SERVER['HTTP_USER_AGENT']);
+
+        $allowed_robots = array(
+            'google',
+            'bing',
+            'yahoo',
+            'duckduck',
+            'baidu',
+            'yandex'
+        );
+
+        foreach ($allowed_robots as $robot) {
+            if (strpos($user_agent, $robot) !== FALSE) {
+                return TRUE;
+            }
+        }
+
+        return FALSE;
+    }
 
 
     // Tracks non-registered users with cookies
@@ -168,10 +192,10 @@ class Recomendo_Plugin {
                 $_COOKIE['recomendo-cookie-user'] = $uniq_id;
 
                 if( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-        			$transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'] . $_SERVER['HTTP_X_FORWARDED_FOR'] ;
-				} else {
-					$transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'];
-				}
+                    $transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'] . $_SERVER['HTTP_X_FORWARDED_FOR'] ;
+                } else {
+                    $transient = 'recomendo_' . $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT'];
+                }
 
                 $cookies_generated = get_transient( $transient );
 
@@ -194,16 +218,16 @@ class Recomendo_Plugin {
 
         $a = shortcode_atts( array(
          'number' => 16,
-		 'type' => 'personalized',
-		 'template' => 'content-' . $this->options['post_type']
+         'type' => 'personalized',
+         'template' => 'content-' . $this->options['post_type']
         ), $atts );
 
-		// get the slug and name from the shortcode template arg
-		$template = explode( '-', basename( $a['template'], '.php') );
-		$template_slug = $template[0];
-		$template_name = implode( '-', array_slice( $template, 1) );
+        // get the slug and name from the shortcode template arg
+        $template = explode( '-', basename( $a['template'], '.php') );
+        $template_slug = $template[0];
+        $template_name = implode( '-', array_slice( $template, 1) );
 
-		switch (  strtolower( $a['type'] ) ) {
+        switch (  strtolower( $a['type'] ) ) {
             case 'personalized' :
                 $response = $this->get_user_recommendations( intval( $a['number']));
                 break;
@@ -225,7 +249,7 @@ class Recomendo_Plugin {
             case 'complementary' :
                 $itemset_products = array();
                 if ( class_exists( 'woocommerce' ) ) {
-					global $woocommerce;
+                    global $woocommerce;
                     foreach ( $woocommerce->cart->get_cart() as $cart_item_key => $values ) {
 
                         // Check if WPML is installed and get the id of the original language post (not translation)
@@ -256,63 +280,63 @@ class Recomendo_Plugin {
                     }
                 }
                 break;
-			case 'trending' :
+            case 'trending' :
                 $response = $this->get_trending_items( intval( $a['number']));
                 break;
 
         }
 
-		if ( $response != false and array_key_exists( 'itemScores', $response ) ) {
-			ob_start();
-			if ( class_exists( 'woocommerce' ) ) {
-				woocommerce_product_loop_start();
-				foreach ($response['itemScores'] as $i ) {
-					if ( get_post_status ( $i['item'] ) == 'publish' ) {
-						$post_object = get_post( $i['item'] );
-						setup_postdata( $GLOBALS['post'] =& $post_object );
-						wc_get_template_part( $template_slug, $template_name );
-					}
-				}
-				woocommerce_product_loop_end();
-			} else {
+        if ( $response != false and array_key_exists( 'itemScores', $response ) ) {
+            ob_start();
+            if ( class_exists( 'woocommerce' ) ) {
+                woocommerce_product_loop_start();
+                foreach ($response['itemScores'] as $i ) {
+                    if ( get_post_status ( $i['item'] ) == 'publish' ) {
+                        $post_object = get_post( $i['item'] );
+                        setup_postdata( $GLOBALS['post'] =& $post_object );
+                        wc_get_template_part( $template_slug, $template_name );
+                    }
+                }
+                woocommerce_product_loop_end();
+            } else {
 
-				foreach ($response['itemScores'] as $i ) {
-					if ( get_post_status ( $i['item'] ) == 'publish' ) {
-						$post_object = get_post( $i['item'] );
-						setup_postdata( $GLOBALS['post'] =& $post_object );
-						// REPLACE by custom parameter
-						get_template_part( $template_slug, $template_name );
-					}
-				}
+                foreach ($response['itemScores'] as $i ) {
+                    if ( get_post_status ( $i['item'] ) == 'publish' ) {
+                        $post_object = get_post( $i['item'] );
+                        setup_postdata( $GLOBALS['post'] =& $post_object );
+                        // REPLACE by custom parameter
+                        get_template_part( $template_slug, $template_name );
+                    }
+                }
 
-			}
+            }
 
-			wp_reset_postdata();
-			$output = ob_get_clean();
-			return $output;
-		}
+            wp_reset_postdata();
+            $output = ob_get_clean();
+            return $output;
+        }
 
 
     } // end of method --> show_shortcode
 
 
-	// Shows recommendations in the WooCommerce Related Products area
-	public function show_related_products( $args ) {
+    // Shows recommendations in the WooCommerce Related Products area
+    public function show_related_products( $args ) {
 
-		global $product;
+        global $product;
 
-		$resp = $this->get_item_recommendations( $product->get_id(), intval( $this->woo_options['woo_num_related'] ) );
+        $resp = $this->get_item_recommendations( $product->get_id(), intval( $this->woo_options['woo_num_related'] ) );
 
-		if ( $resp != false and array_key_exists( 'itemScores', $resp ) ) {
-			$related_products = array();
-			foreach ($resp['itemScores'] as $i ) {
-				//$related_products[] = wc_get_product( $i['item'] );
-				$related_products[] = $i['item'] ;
-			}
-			$args = $related_products;
-		}
-		return $args;
-	} // end of method --> show_related_products
+        if ( $resp != false and array_key_exists( 'itemScores', $resp ) ) {
+            $related_products = array();
+            foreach ($resp['itemScores'] as $i ) {
+                //$related_products[] = wc_get_product( $i['item'] );
+                $related_products[] = $i['item'] ;
+            }
+            $args = $related_products;
+        }
+        return $args;
+    } // end of method --> show_related_products
 
 
     // Shows recommendations in the WooCommerce Cart
@@ -322,7 +346,7 @@ class Recomendo_Plugin {
 
         $defaults = array(
             'posts_per_page' => intval($this->woo_options['woo_num_cart']),
-			'title' => $this->woo_options['woo_cart_title']
+            'title' => $this->woo_options['woo_cart_title']
         );
 
         $args = wp_parse_args( $args, $defaults );
@@ -367,9 +391,9 @@ class Recomendo_Plugin {
                 setup_postdata( $GLOBALS['post'] =& $post_object );
                 wc_get_template_part( 'content', 'product' );
             }
-			echo '</section>';
+            echo '</section>';
             woocommerce_product_loop_end();
-			wp_reset_postdata();
+            wp_reset_postdata();
 
         }
     } // end of method --> show_cart_recommendations
@@ -380,10 +404,10 @@ class Recomendo_Plugin {
     public function get_excluded_items() {
 
         if ( class_exists( 'woocommerce' ) &&
-			$this->options['post_type'] == 'product'  &&
-		    isset( $this->woo_options['woo_exclude_outofstock'] ) ) {
+            $this->options['post_type'] == 'product'  &&
+            isset( $this->woo_options['woo_exclude_outofstock'] ) ) {
 
-			$args = array(
+            $args = array(
                 'post_type' => 'product',
                 'fields' => 'ids',
                 'numberposts' => -1,
@@ -437,28 +461,28 @@ class Recomendo_Plugin {
 
 
     // returns trending items. This is a fallback for other recommendations.
-	// when no user, item or complementary recommendations are found, trending items are returned
-	public function get_trending_items( $number ) {
+    // when no user, item or complementary recommendations are found, trending items are returned
+    public function get_trending_items( $number ) {
 
         //ignore bots and crawlers
-        if ( $this->detect_crawler() ) return false;
+        if ( $this->detect_crawler() and ! $this->is_robot_allowed() ) return false;
 
-		$query = array(
+        $query = array(
             'num' => $number
         );
 
         $query['blacklistItems'] = $this->get_excluded_items();
 
-		if ( isset ( $this->general_options['expire_date'] ) &&
-			$this->general_options['expire_date'] != 0 ) {
+        if ( isset ( $this->general_options['expire_date'] ) &&
+            $this->general_options['expire_date'] != 0 ) {
 
-				$after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
-				$query['dateRange'] = array(
-					'name' => 'published_date',
-					'after' => $after_date
-				);
+                $after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
+                $query['dateRange'] = array(
+                    'name' => 'published_date',
+                    'after' => $after_date
+                );
 
-		}
+        }
 
         $response = $this->client->send_query( $query );
 
@@ -496,99 +520,99 @@ class Recomendo_Plugin {
     }  // end of method --> get_trending_items
 
 
-	private function map_range_input_to_bias( $value ) {
-		if ( intval($value) == -1 ) return 0.0; // exclude
-		if ( intval($value) == 0 ) return 0.5; // less importance
-		if ( intval($value) == 1 ) return 1.0; 	// neutral
-		if ( intval($value) == 2 ) return 1.5; // more importance
-		if ( intval($value) == 3) return -1.0;	// Include only
-	}
+    private function map_range_input_to_bias( $value ) {
+        if ( intval($value) == -1 ) return 0.0; // exclude
+        if ( intval($value) == 0 ) return 0.5; // less importance
+        if ( intval($value) == 1 ) return 1.0;  // neutral
+        if ( intval($value) == 2 ) return 1.5; // more importance
+        if ( intval($value) == 3) return -1.0;  // Include only
+    }
 
     // Recomendo user based recommendations
     // returns post ids and relevance score
     public function get_user_recommendations( $number ) {
 
         //ignore bots and crawlers
-        if ( $this->detect_crawler() ) return false;
+        if ( $this->detect_crawler() and ! $this->is_robot_allowed() ) return false;
 
         if ( get_current_user_id() == 0 ) {
-			$userid = $_COOKIE['recomendo-cookie-user'];
+            $userid = $_COOKIE['recomendo-cookie-user'];
         } else {
             $userid = get_current_user_id();
         }
 
-		$fields = array();
+        $fields = array();
 
-		if ( isset(  $this->woo_options['woo_onsale_relevance'] ) ) {
+        if ( isset(  $this->woo_options['woo_onsale_relevance'] ) ) {
 
-				$on_sale_bias = $this->map_range_input_to_bias(
-					$this->woo_options['woo_onsale_relevance'] );
+                $on_sale_bias = $this->map_range_input_to_bias(
+                    $this->woo_options['woo_onsale_relevance'] );
 
-				// we ignore neutral and dont add it to the query
-				if ( $on_sale_bias != 1.0 ) {
-					// less importance boost "no" instead
-					if ( $on_sale_bias == 0.5 ) {
-						$on_sale_args = array(
-							'name' => 'is_on_sale',
-							'values' => ['no'],
-							'bias' => 1.5
-						);
-					} else {
-						$on_sale_args = array(
-							'name' => 'is_on_sale',
-							'values' => ['yes'],
-							'bias' => $on_sale_bias
-						);
-					}
+                // we ignore neutral and dont add it to the query
+                if ( $on_sale_bias != 1.0 ) {
+                    // less importance boost "no" instead
+                    if ( $on_sale_bias == 0.5 ) {
+                        $on_sale_args = array(
+                            'name' => 'is_on_sale',
+                            'values' => ['no'],
+                            'bias' => 1.5
+                        );
+                    } else {
+                        $on_sale_args = array(
+                            'name' => 'is_on_sale',
+                            'values' => ['yes'],
+                            'bias' => $on_sale_bias
+                        );
+                    }
 
-					$fields[] = $on_sale_args;
-				}
+                    $fields[] = $on_sale_args;
+                }
 
-		}
+        }
 
-		if ( isset(  $this->woo_options['woo_featured_relevance'] ) ) {
-				$featured_bias = $this->map_range_input_to_bias(
-					$this->woo_options['woo_featured_relevance'] );
+        if ( isset(  $this->woo_options['woo_featured_relevance'] ) ) {
+                $featured_bias = $this->map_range_input_to_bias(
+                    $this->woo_options['woo_featured_relevance'] );
 
-				// we ignore neutral and dont add it to the query
-				if ( $featured_bias != 1.0 ) {
-					// less importance boost "no" instead
-					if ( $featured_bias == 0.5 ) {
-						$featured_args = array(
-							'name' => 'is_featured',
-							'values' => ['no'],
-							'bias' => 1.5
-						);
-					} else {
-						$featured_args = array(
-							'name' => 'is_featured',
-							'values' => ['yes'],
-							'bias' => $featured_bias
-						);
+                // we ignore neutral and dont add it to the query
+                if ( $featured_bias != 1.0 ) {
+                    // less importance boost "no" instead
+                    if ( $featured_bias == 0.5 ) {
+                        $featured_args = array(
+                            'name' => 'is_featured',
+                            'values' => ['no'],
+                            'bias' => 1.5
+                        );
+                    } else {
+                        $featured_args = array(
+                            'name' => 'is_featured',
+                            'values' => ['yes'],
+                            'bias' => $featured_bias
+                        );
 
-					}
+                    }
 
-					$fields[] = $featured_args;
+                    $fields[] = $featured_args;
 
-				}
+                }
 
-		}
+        }
 
         $query = array(
             'user' => $userid,
             'num' => $number,
-			'fields' => $fields
-		);
+            'fields' => $fields
+        );
 
-		if ( isset ( $this->general_options['expire_date'] ) &&
-			$this->general_options['expire_date'] != 0 ) {
+        if ( isset ( $this->general_options['expire_date'] ) &&
+            $this->general_options['expire_date'] != 0 ) {
 
-				$after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
-				$query['dateRange'] = array(
-					'name' => 'published_date',
-					'after' => $after_date
-				);
-		}
+                $after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
+                $query['dateRange'] = array(
+                    'name' => 'published_date',
+                    'after' => $after_date
+                );
+        }
 
         $query['blacklistItems'] = $this->get_excluded_items();
 
@@ -635,7 +659,7 @@ class Recomendo_Plugin {
     public function get_item_recommendations( $item, $number ) {
 
         //ignore bots and crawlers
-        if ( $this->detect_crawler() ) return false;
+        if ( $this->detect_crawler() and ! $this->is_robot_allowed() ) return false;
 
 
         $fields = array();
@@ -648,135 +672,135 @@ class Recomendo_Plugin {
             }
         }
 
-		// Apply the Similar Categories Bias/Boost to the query
-		if ( isset(  $this->general_options['similar_categories_relevance'] ) ) {
+        // Apply the Similar Categories Bias/Boost to the query
+        if ( isset(  $this->general_options['similar_categories_relevance'] ) ) {
 
-			$same_categories_bias = $this->map_range_input_to_bias(
-					$this->general_options['similar_categories_relevance'] );
+            $same_categories_bias = $this->map_range_input_to_bias(
+                    $this->general_options['similar_categories_relevance'] );
 
-			// we ignore neutral and dont add it to the query
-			if ( $same_categories_bias != 1.0 ) {
+            // we ignore neutral and dont add it to the query
+            if ( $same_categories_bias != 1.0 ) {
 
-				$categories = array();
+                $categories = array();
 
-				// get the categories to boost
-				if ( class_exists( 'woocommerce' ) ) {
-					$terms = get_the_terms( $item, 'product_cat' );
-				} else {
-					$terms = get_the_terms( $item, 'category' );
-				}
+                // get the categories to boost
+                if ( class_exists( 'woocommerce' ) ) {
+                    $terms = get_the_terms( $item, 'product_cat' );
+                } else {
+                    $terms = get_the_terms( $item, 'category' );
+                }
 
-				if (is_array($terms) or is_object($terms)) {
-            		foreach ($terms as $term) {
-                		$categories[] = (string) $term->term_id;
-            		}
+                if (is_array($terms) or is_object($terms)) {
+                    foreach ($terms as $term) {
+                        $categories[] = (string) $term->term_id;
+                    }
 
-					$similar_categories_args = array(
-						'name' => 'categories',
-						'values' => $categories,
-						'bias' => $same_categories_bias
-					);
+                    $similar_categories_args = array(
+                        'name' => 'categories',
+                        'values' => $categories,
+                        'bias' => $same_categories_bias
+                    );
 
-					$fields[] = $similar_categories_args;
-        		}
-			}
-
-
-		}
-
-		// Apply the Similar Tags Bias/Boost to the query
-		if ( isset(  $this->general_options['similar_tags_relevance'] ) ) {
-
-			$same_tags_bias = $this->map_range_input_to_bias(
-					$this->general_options['similar_tags_relevance'] );
-
-			// we ignore neutral and dont add it to the query
-			if ( $same_tags_bias != 1.0 ) {
-
-				$tags = array();
-
-				// get the tags to boost
-				if ( class_exists( 'woocommerce' ) ) {
-					$taglist = get_the_terms( $item, 'product_tag' );
-				} else {
-					$taglist = get_the_tags( $item );
-				}
+                    $fields[] = $similar_categories_args;
+                }
+            }
 
 
-				if (is_array($taglist) or is_object($taglist)) {
-					foreach ($taglist as $tagitem) {
-						$tags[] = (string) $tagitem->term_id;
-					}
+        }
 
-					$similar_tags_args = array(
-						'name' => 'tags',
-						'values' => $tags,
-						'bias' => $same_tags_bias
-					);
+        // Apply the Similar Tags Bias/Boost to the query
+        if ( isset(  $this->general_options['similar_tags_relevance'] ) ) {
 
-					$fields[] = $similar_tags_args;
+            $same_tags_bias = $this->map_range_input_to_bias(
+                    $this->general_options['similar_tags_relevance'] );
 
-				}
+            // we ignore neutral and dont add it to the query
+            if ( $same_tags_bias != 1.0 ) {
 
-			}
+                $tags = array();
+
+                // get the tags to boost
+                if ( class_exists( 'woocommerce' ) ) {
+                    $taglist = get_the_terms( $item, 'product_tag' );
+                } else {
+                    $taglist = get_the_tags( $item );
+                }
 
 
-		}
+                if (is_array($taglist) or is_object($taglist)) {
+                    foreach ($taglist as $tagitem) {
+                        $tags[] = (string) $tagitem->term_id;
+                    }
 
-		// Apply Boost-Bias to Items on Sale
-		if ( isset(  $this->woo_options['woo_onsale_relevance'] ) ) {
+                    $similar_tags_args = array(
+                        'name' => 'tags',
+                        'values' => $tags,
+                        'bias' => $same_tags_bias
+                    );
 
-			$on_sale_bias = $this->map_range_input_to_bias(
-				$this->woo_options['woo_onsale_relevance'] );
+                    $fields[] = $similar_tags_args;
 
-			// we ignore neutral and dont add it to the query
-			if ( $on_sale_bias != 1.0 ) {
-				// less importance boost "no" instead
-				if ( $on_sale_bias == 0.5 ) {
-					$on_sale_args = array(
-						'name' => 'is_on_sale',
-						'values' => ['no'],
-						'bias' => 1.5
-					);
-				} else {
-					$on_sale_args = array(
-						'name' => 'is_on_sale',
-						'values' => ['yes'],
-						'bias' => $on_sale_bias
-					);
-				}
+                }
 
-				$fields[] = $on_sale_args;
-			}
+            }
 
-		}
 
-		// Apply Boost-Bias to Featured Items
-		if ( isset(  $this->woo_options['woo_featured_relevance'] ) ) {
-			$featured_bias = $this->map_range_input_to_bias(
-				$this->woo_options['woo_featured_relevance'] );
+        }
 
-			// we ignore neutral and dont add it to the query
-			if ( $featured_bias != 1.0 ) {
-				// less importance boost "no" instead
-				if ( $featured_bias == 0.5 ) {
-					$featured_args = array(
-						'name' => 'is_featured',
-						'values' => ['no'],
-						'bias' => 1.5
-					);
-				} else {
-					$featured_args = array(
-						'name' => 'is_featured',
-						'values' => ['yes'],
-						'bias' => $featured_bias
-					);
+        // Apply Boost-Bias to Items on Sale
+        if ( isset(  $this->woo_options['woo_onsale_relevance'] ) ) {
 
-				}
+            $on_sale_bias = $this->map_range_input_to_bias(
+                $this->woo_options['woo_onsale_relevance'] );
 
-				$fields[] = $featured_args;
-			}
-		}
+            // we ignore neutral and dont add it to the query
+            if ( $on_sale_bias != 1.0 ) {
+                // less importance boost "no" instead
+                if ( $on_sale_bias == 0.5 ) {
+                    $on_sale_args = array(
+                        'name' => 'is_on_sale',
+                        'values' => ['no'],
+                        'bias' => 1.5
+                    );
+                } else {
+                    $on_sale_args = array(
+                        'name' => 'is_on_sale',
+                        'values' => ['yes'],
+                        'bias' => $on_sale_bias
+                    );
+                }
+
+                $fields[] = $on_sale_args;
+            }
+
+        }
+
+        // Apply Boost-Bias to Featured Items
+        if ( isset(  $this->woo_options['woo_featured_relevance'] ) ) {
+            $featured_bias = $this->map_range_input_to_bias(
+                $this->woo_options['woo_featured_relevance'] );
+
+            // we ignore neutral and dont add it to the query
+            if ( $featured_bias != 1.0 ) {
+                // less importance boost "no" instead
+                if ( $featured_bias == 0.5 ) {
+                    $featured_args = array(
+                        'name' => 'is_featured',
+                        'values' => ['no'],
+                        'bias' => 1.5
+                    );
+                } else {
+                    $featured_args = array(
+                        'name' => 'is_featured',
+                        'values' => ['yes'],
+                        'bias' => $featured_bias
+                    );
+
+                }
+
+                $fields[] = $featured_args;
+            }
+        }
 
         $query = array(
             'item'=> $item,
@@ -784,16 +808,16 @@ class Recomendo_Plugin {
             'fields'=> $fields
         );
 
-		if ( isset ( $this->general_options['expire_date'] ) &&
-			$this->general_options['expire_date'] != 0 ) {
+        if ( isset ( $this->general_options['expire_date'] ) &&
+            $this->general_options['expire_date'] != 0 ) {
 
-				$after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
-				$query['dateRange'] = array(
-					'name' => 'published_date',
-					'after' => $after_date
-				);
+                $after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
+                $query['dateRange'] = array(
+                    'name' => 'published_date',
+                    'after' => $after_date
+                );
 
-		}
+        }
 
         $query['blacklistItems'] = $this->get_excluded_items();
 
@@ -841,84 +865,84 @@ class Recomendo_Plugin {
     public function get_itemset_recommendations( array $items, $number ) {
 
         //ignore bots and crawlers
-        if ( $this->detect_crawler() ) return false;
+        if ( $this->detect_crawler() and ! $this->is_robot_allowed() ) return false;
 
 
-		$fields = array();
+        $fields = array();
 
-		if ( isset(  $this->woo_options['woo_onsale_relevance'] ) ) {
+        if ( isset(  $this->woo_options['woo_onsale_relevance'] ) ) {
 
-			$on_sale_bias = $this->map_range_input_to_bias(
-				$this->woo_options['woo_onsale_relevance'] );
+            $on_sale_bias = $this->map_range_input_to_bias(
+                $this->woo_options['woo_onsale_relevance'] );
 
-			// we ignore neutral and dont add it to the query
-			if ( $on_sale_bias != 1.0 ) {
-				// less importance boost "no" instead
-				if ( $on_sale_bias == 0.5 ) {
-					$on_sale_args = array(
-						'name' => 'is_on_sale',
-						'values' => ['no'],
-						'bias' => 1.5
-					);
-				} else {
-					$on_sale_args = array(
-						'name' => 'is_on_sale',
-						'values' => ['yes'],
-						'bias' => $on_sale_bias
-					);
-				}
+            // we ignore neutral and dont add it to the query
+            if ( $on_sale_bias != 1.0 ) {
+                // less importance boost "no" instead
+                if ( $on_sale_bias == 0.5 ) {
+                    $on_sale_args = array(
+                        'name' => 'is_on_sale',
+                        'values' => ['no'],
+                        'bias' => 1.5
+                    );
+                } else {
+                    $on_sale_args = array(
+                        'name' => 'is_on_sale',
+                        'values' => ['yes'],
+                        'bias' => $on_sale_bias
+                    );
+                }
 
-				$fields[] = $on_sale_args;
-			}
+                $fields[] = $on_sale_args;
+            }
 
-		}
+        }
 
-		if ( isset(  $this->woo_options['woo_featured_relevance'] ) ) {
-				$featured_bias = $this->map_range_input_to_bias(
-					$this->woo_options['woo_featured_relevance'] );
+        if ( isset(  $this->woo_options['woo_featured_relevance'] ) ) {
+                $featured_bias = $this->map_range_input_to_bias(
+                    $this->woo_options['woo_featured_relevance'] );
 
-				// we ignore neutral and dont add it to the query
-				if ( $featured_bias != 1.0 ) {
-					// less importance boost "no" instead
-					if ( $featured_bias == 0.5 ) {
-						$featured_args = array(
-							'name' => 'is_featured',
-							'values' => ['no'],
-							'bias' => 1.5
-						);
-					} else {
-						$featured_args = array(
-							'name' => 'is_featured',
-							'values' => ['yes'],
-							'bias' => $featured_bias
-						);
+                // we ignore neutral and dont add it to the query
+                if ( $featured_bias != 1.0 ) {
+                    // less importance boost "no" instead
+                    if ( $featured_bias == 0.5 ) {
+                        $featured_args = array(
+                            'name' => 'is_featured',
+                            'values' => ['no'],
+                            'bias' => 1.5
+                        );
+                    } else {
+                        $featured_args = array(
+                            'name' => 'is_featured',
+                            'values' => ['yes'],
+                            'bias' => $featured_bias
+                        );
 
-					}
+                    }
 
-					$fields[] = $featured_args;
+                    $fields[] = $featured_args;
 
-				}
+                }
 
-		}
+        }
 
         $query = array(
             'itemSet'=> $items,
             'num'=> $number,
-			'fields' => $fields
+            'fields' => $fields
         );
 
         $query['blacklistItems'] = $this->get_excluded_items();
 
-		if ( isset ( $this->general_options['expire_date'] ) &&
-			$this->general_options['expire_date'] != 0 ) {
+        if ( isset ( $this->general_options['expire_date'] ) &&
+            $this->general_options['expire_date'] != 0 ) {
 
-				$after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
-				$query['dateRange'] = array(
-					'name' => 'published_date',
-					'after' => $after_date
-				);
+                $after_date = date('c', strtotime('-' . $this->general_options['expire_date'] . ' days' ) );
+                $query['dateRange'] = array(
+                    'name' => 'published_date',
+                    'after' => $after_date
+                );
 
-		}
+        }
 
         $response = $this->client->send_query( $query );
 
@@ -978,10 +1002,10 @@ class Recomendo_Plugin {
     } // end of method --> add_user
 
 
-	// Add all users using background processing
-	public function add_all_users_background() {
+    // Add all users using background processing
+    public function add_all_users_background() {
 
-		$args = array(
+        $args = array(
             'fields'       => 'ids',
             'numberposts' => -1
         );
@@ -991,12 +1015,12 @@ class Recomendo_Plugin {
         // Array of WP_User objects.
 
         foreach ( $user_ids as $id ) {
-			$this->bg_user_copy->push_to_queue( $id );
-		}
+            $this->bg_user_copy->push_to_queue( $id );
+        }
 
-		$this->bg_user_copy->save()->dispatch();
+        $this->bg_user_copy->save()->dispatch();
 
-	} //end-of-method add_all_users_background()
+    } //end-of-method add_all_users_background()
 
 
     // Delete user from Recomendo
@@ -1013,80 +1037,80 @@ class Recomendo_Plugin {
     // Add item to Recomendo
     public function add_item( $postid ) {
 
-		// Check if WPML is installed and get the id of the original language post (not translation)
-		if ( function_exists('icl_object_id') ) {
-			global $sitepress;
-			$postid = icl_object_id( $postid, $this->options['post_type'], true, $sitepress->get_default_language() );
-		}
+        // Check if WPML is installed and get the id of the original language post (not translation)
+        if ( function_exists('icl_object_id') ) {
+            global $sitepress;
+            $postid = icl_object_id( $postid, $this->options['post_type'], true, $sitepress->get_default_language() );
+        }
 
 
-		if ( class_exists( 'woocommerce' ) ) {
-			$terms = get_the_terms( $postid, 'product_cat' );
-			$taglist = get_the_terms( $postid, 'product_tag' );
-			$product = wc_get_product( $postid );
-			// item on sale !
-			$is_on_sale = array($product->is_on_sale() ? "yes" : "no" );
-			// Featured item
-			$is_featured = array($product->is_featured() ? "yes" : "no" );
-		} else {
-			$terms = get_the_terms( $postid, 'category' );
-			$taglist = get_the_tags( $postid );
-			$is_on_sale = array("no"); //false
-			$is_featured = array("no");    //false
-		}
+        if ( class_exists( 'woocommerce' ) ) {
+            $terms = get_the_terms( $postid, 'product_cat' );
+            $taglist = get_the_terms( $postid, 'product_tag' );
+            $product = wc_get_product( $postid );
+            // item on sale !
+            $is_on_sale = array($product->is_on_sale() ? "yes" : "no" );
+            // Featured item
+            $is_featured = array($product->is_featured() ? "yes" : "no" );
+        } else {
+            $terms = get_the_terms( $postid, 'category' );
+            $taglist = get_the_tags( $postid );
+            $is_on_sale = array("no"); //false
+            $is_featured = array("no");    //false
+        }
 
-		$title =  wp_filter_nohtml_kses( get_the_title( $postid ) );
+        $title =  wp_filter_nohtml_kses( get_the_title( $postid ) );
 
-		$categories = array();
-		if (is_array($terms) or is_object($terms)) {
-			foreach ($terms as $term) {
-				$categories[] = (string) $term->term_id;
-			}
-		}
+        $categories = array();
+        if (is_array($terms) or is_object($terms)) {
+            foreach ($terms as $term) {
+                $categories[] = (string) $term->term_id;
+            }
+        }
 
-		$tags = array();
-		if (is_array($taglist) or is_object($taglist)) {
-			foreach ($taglist as $tagitem) {
-				$tags[] = (string) $tagitem->term_id;
-			}
-		}
+        $tags = array();
+        if (is_array($taglist) or is_object($taglist)) {
+            foreach ($taglist as $tagitem) {
+                $tags[] = (string) $tagitem->term_id;
+            }
+        }
 
-		$published_date = get_the_date( 'c', $postid );
+        $published_date = get_the_date( 'c', $postid );
 
-		$properties = compact(
-			'title',
-			'categories',
-			'tags',
-			'is_on_sale',
-			'is_featured',
-			'published_date'
+        $properties = compact(
+            'title',
+            'categories',
+            'tags',
+            'is_on_sale',
+            'is_featured',
+            'published_date'
 
-		);
+        );
 
-		$response = $this->client->set_item($postid, $properties);
+        $response = $this->client->set_item($postid, $properties);
 
-		if ( !is_wp_error( $response ) ) {
-			$response = $this->client->send_train_request();
+        if ( !is_wp_error( $response ) ) {
+            $response = $this->client->send_train_request();
 
-			if ( is_wp_error( $response ) ) {
-				error_log( "[RECOMENDO] --- Error sending train request after adding item." );
-				error_log( "[RECOMENDO] --- " . $response->get_error_message() );
-			}
-		} else {
-			error_log( "[RECOMENDO] --- Error adding an item." );
-			error_log( "[RECOMENDO] --- " . $response->get_error_message() );
-		}
+            if ( is_wp_error( $response ) ) {
+                error_log( "[RECOMENDO] --- Error sending train request after adding item." );
+                error_log( "[RECOMENDO] --- " . $response->get_error_message() );
+            }
+        } else {
+            error_log( "[RECOMENDO] --- Error adding an item." );
+            error_log( "[RECOMENDO] --- " . $response->get_error_message() );
+        }
 
 
     } // end of method --> add_item
 
 
 
-	public function add_all_items_background() {
+    public function add_all_items_background() {
 
-		//$options = get_option( 'recomendo_options ' );
+        //$options = get_option( 'recomendo_options ' );
 
-		$args = array(
+        $args = array(
             'post_type' => $this->options['post_type'],
             'fields' => 'ids',
             'numberposts' => -1
@@ -1098,13 +1122,13 @@ class Recomendo_Plugin {
 
         $post_ids = get_posts( $args );
 
-		foreach ($post_ids as $id) {
-			$this->bg_item_copy->push_to_queue( $id );
-		}
+        foreach ($post_ids as $id) {
+            $this->bg_item_copy->push_to_queue( $id );
+        }
 
-		$this->bg_item_copy->save()->dispatch();
+        $this->bg_item_copy->save()->dispatch();
 
-	} //end-of-method add_all_items_background()
+    } //end-of-method add_all_items_background()
 
 
     // delete item from Recomendo when Post status changes to not Published
@@ -1154,11 +1178,11 @@ class Recomendo_Plugin {
 
         if ( is_singular( $this->options['post_type'] ) ) {
 
-			if ( get_current_user_id() == 0 ) {
-				$userid = $_COOKIE['recomendo-cookie-user'];
-			} else {
-				$userid = get_current_user_id();
-			}
+            if ( get_current_user_id() == 0 ) {
+                $userid = $_COOKIE['recomendo-cookie-user'];
+            } else {
+                $userid = get_current_user_id();
+            }
 
             // Check if registered user does not want user behaviour to be tracked
             if ( in_array( $userid, $this->get_excluded_users() ) ) return;
@@ -1189,7 +1213,7 @@ class Recomendo_Plugin {
     } // end of method --> record_view_event
 
 
-	// Send category-pref
+    // Send category-pref
     public function record_category_pref() {
 
         // ignore bots
@@ -1197,19 +1221,19 @@ class Recomendo_Plugin {
             return;
         }
 
-		if ( is_category() or is_tax() or is_tag() ) {
+        if ( is_category() or is_tax() or is_tag() ) {
 
-			$queried_object = get_queried_object();
+            $queried_object = get_queried_object();
 
-			$term_id = $queried_object->term_id ;
-			$term_type = $queried_object->name ;
+            $term_id = $queried_object->term_id ;
+            $term_type = $queried_object->name ;
 
 
-			if ( get_current_user_id() == 0 ) {
-				$userid = $_COOKIE['recomendo-cookie-user'];
-			} else {
-				$userid = get_current_user_id();
-			}
+            if ( get_current_user_id() == 0 ) {
+                $userid = $_COOKIE['recomendo-cookie-user'];
+            } else {
+                $userid = get_current_user_id();
+            }
 
             // Check if registered user does not want user behaviour to be tracked
             if ( in_array( $userid, $this->get_excluded_users() ) ) return;
@@ -1245,8 +1269,8 @@ class Recomendo_Plugin {
             return;
         }
 
-		if ( get_current_user_id() == 0 ) {
-			$userid = $_COOKIE['recomendo-cookie-user'];
+        if ( get_current_user_id() == 0 ) {
+            $userid = $_COOKIE['recomendo-cookie-user'];
         } else {
             $userid = get_current_user_id();
         }
@@ -1290,7 +1314,7 @@ class Recomendo_Plugin {
         }
 
         if ( get_current_user_id() == 0 ) {
-			$userid = $_COOKIE['recomendo-cookie-user'];
+            $userid = $_COOKIE['recomendo-cookie-user'];
         } else {
             $userid = get_current_user_id();
         }
@@ -1342,9 +1366,9 @@ class Recomendo_Plugin {
     } // end of method --> record_buy_event
 
 
-	// Adds all orders as buy events to the eventserver.
+    // Adds all orders as buy events to the eventserver.
     // Executed when all data is copied to eventserver
-	public function add_all_orders_background() {
+    public function add_all_orders_background() {
 
         $query_args = array(
             'fields'         => 'ids',
@@ -1356,28 +1380,28 @@ class Recomendo_Plugin {
         $order_ids = get_posts( $query_args );
 
         if ( sizeof( $order_ids ) > 0 ) {
-			foreach ( $order_ids as $id ) {
-				$this->bg_order_copy->push_to_queue( $id );
-			}
-		}
+            foreach ( $order_ids as $id ) {
+                $this->bg_order_copy->push_to_queue( $id );
+            }
+        }
 
-		$this->bg_order_copy->save()->dispatch();
+        $this->bg_order_copy->save()->dispatch();
 
-	} //end-of-method add_all_orders_background()
+    } //end-of-method add_all_orders_background()
 
 
 
     public function copy_data_to_eventserver() {
 
-			update_option( 'recomendo_data_saved_ok', true );
+            update_option( 'recomendo_data_saved_ok', true );
 
-			$this->add_all_users_background();
-			$this->add_all_items_background();
-			if ( class_exists( 'woocommerce' ) &&
-				$this->options['post_type'] == 'product' ) {
+            $this->add_all_users_background();
+            $this->add_all_items_background();
+            if ( class_exists( 'woocommerce' ) &&
+                $this->options['post_type'] == 'product' ) {
 
-					$this->add_all_orders_background();
-			}
+                    $this->add_all_orders_background();
+            }
     }
 
 

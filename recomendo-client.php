@@ -33,41 +33,41 @@ class Recomendo_Client {
         return array(
                 'Content-Type' => 'application/json',
                 'User-Agent' =>  $this->user_agent,
-				'Accept-Encoding' => 'gzip',
+                'Accept-Encoding' => 'gzip',
                 'Authorization' => 'Bearer ' . $this->get_token()
         );
     }
 
 
 
-	public function get_token( $client_id=false, $client_secret=false ) {
+    public function get_token( $client_id=false, $client_secret=false ) {
 
-		if (! $client_id )
-			$client_id = $this->client_id;
+        if (! $client_id )
+            $client_id = $this->client_id;
 
-		if (! $client_secret )
-			$client_secret = $this->client_secret;
+        if (! $client_secret )
+            $client_secret = $this->client_secret;
 
-		if ( false === ( $token = get_transient( 'recomendo_token' ) ) ) {
-			$base_auth = base64_encode( $client_id . ':' . $client_secret );
-			$headers = array( 'Authorization' => 'Basic ' . $base_auth );
-			$response = wp_remote_post( self::AUTH_URL,
-							array(
-							  'timeout' => self::TIMEOUT,
-							  'httpversion' => self::HTTPVERSION,
-							  'headers' => $headers
-							)
-						);
+        if ( false === ( $token = get_transient( 'recomendo_token' ) ) ) {
+            $base_auth = base64_encode( $client_id . ':' . $client_secret );
+            $headers = array( 'Authorization' => 'Basic ' . $base_auth );
+            $response = wp_remote_post( self::AUTH_URL,
+                            array(
+                              'timeout' => self::TIMEOUT,
+                              'httpversion' => self::HTTPVERSION,
+                              'headers' => $headers
+                            )
+                        );
 
-			if ( ! is_wp_error( $response ) ) {
-				$body = json_decode( $response['body'] );
-				$token = $body->payload->token;
-				set_transient( 'recomendo_token', $token , 3500 );
-			}
-		}
+            if ( ! is_wp_error( $response ) ) {
+                $body = json_decode( $response['body'] );
+                $token = $body->payload->token;
+                set_transient( 'recomendo_token', $token , 3500 );
+            }
+        }
 
         return $token;
-	}
+    }
 
 
 
@@ -411,7 +411,7 @@ class Recomendo_Client {
 
         $url = self::EVENTS_URL . ".json";
 
-		$query_params = array();
+        $query_params = array();
 
         if ( !is_null( $start_time ) )
             $query_params['startTime'] = $start_time;
@@ -440,8 +440,8 @@ class Recomendo_Client {
         if ( !is_null( $reversed ) )
             $query_params['reversed'] = $reversed;
 
-		if (! empty( $query_params) )
-			$url .= '?' . http_build_query( $query_params );
+        if (! empty( $query_params) )
+            $url .= '?' . http_build_query( $query_params );
 
 
         $response = wp_remote_get( $url,
@@ -452,7 +452,7 @@ class Recomendo_Client {
                         )
                     );
 
-      	return $response;
+        return $response;
 
     }
 
@@ -482,30 +482,33 @@ class Recomendo_Client {
      */
     public function send_train_request() {
 
-		if ( ! get_transient( 'recomendo_train_request_sent' ) )  {
+        if ( ! get_transient( 'recomendo_train_request_sent' ) )  {
 
-			$url = 'https://client.recomendo.ai/v1/train';
+            //  to prevent race condition, 
+            set_transient( 'recomendo_train_request_sent', true, 1800 );
 
-			$response = wp_remote_post( $url,
-									   array(
-										   'timeout' => self::TIMEOUT,
-										   'httpversion' => self::HTTPVERSION,
-										   'headers' => $this->get_header()
-									   	)
-									  );
+            $url = 'https://client.recomendo.ai/v1/train';
 
-			// It wasn't there, so regenerate the data and save the transient
-            if ( ! is_wp_error( $response )) {
-                set_transient( 'recomendo_train_request_sent', true, 1800 );
+            $response = wp_remote_post( $url,
+                                       array(
+                                           'timeout' => self::TIMEOUT,
+                                           'httpversion' => self::HTTPVERSION,
+                                           'headers' => $this->get_header()
+                                        )
+                                      );
+
+            // delete the transient if train request fails
+            if ( is_wp_error( $response )) {
+                delete_transient( 'recomendo_train_request_sent' );
             }
 
-		} else {
-			// if transient exists we ignore sending train request, but record it as OK
-			$response = array( 'response' => array( 'code' => 200, 'message' => 'OK' ) );
-		}
+        } else {
+            // if transient exists we ignore sending train request, but record it as OK
+            $response = array( 'response' => array( 'code' => 200, 'message' => 'OK' ) );
+        }
 
-		// Here we return the raw response!
-		return $response;
+        // Here we return the raw response!
+        return $response;
 
     }
 

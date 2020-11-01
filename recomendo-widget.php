@@ -30,12 +30,12 @@ class Recomendo_Widget extends WP_Widget {
 
         if ( !get_option( 'recomendo_auth' ) ) return;
 
-		if ( !$options = get_option( 'recomendo_options' ) ) return;
+        if ( !$options = get_option( 'recomendo_options' ) ) return;
 
-		$template_args = array(
-			'widget_id'   => $args['widget_id'],
-			'show_rating' => true
-		);
+        $template_args = array(
+            'widget_id'   => $args['widget_id'],
+            'show_rating' => true
+        );
 
         switch (  $instance['type'] ) {
             case 'Personalized' :
@@ -89,14 +89,14 @@ class Recomendo_Widget extends WP_Widget {
                     }
                 }
                 break;
-			case 'Trending Items' :
+            case 'Trending Items' :
                 $response = $recomendo->get_trending_items( intval( $instance['number']));
                 break;
 
         }
 
 
-		if ( $response != false and array_key_exists( 'itemScores', $response ) ) {
+        if ( $response != false and array_key_exists( 'itemScores', $response ) ) {
 
             $title = apply_filters( 'widget_title', $instance['title'] );
 
@@ -108,36 +108,36 @@ class Recomendo_Widget extends WP_Widget {
             // This is where you run the code and display the output
             // -----------------------------------------------
 
-			if ( class_exists( 'woocommerce' ) ) {
-				echo wp_kses_post( apply_filters( 'woocommerce_before_widget_product_list', '<ul class="' . $instance['class'] .  '">' ) );
-				foreach ($response['itemScores'] as $i ) {
-					if ( get_post_status ( $i['item'] ) == 'publish' ) {
-						$post_object = get_post( $i['item'] );
-						setup_postdata( $GLOBALS['post'] =& $post_object );
-						// add .php to the template -> woocommerce requires it
-						// but get_template_part does not
-						wc_get_template( $instance['template'] . '.php', $template_args );
-					}
-				}
-			} else {
+            if ( class_exists( 'woocommerce' ) ) {
+                echo wp_kses_post( apply_filters( 'woocommerce_before_widget_product_list', '<ul class="' . $instance['class'] .  '">' ) );
+                foreach ($response['itemScores'] as $i ) {
+                    if ( get_post_status ( $i['item'] ) == 'publish' ) {
+                        $post_object = get_post( $i['item'] );
+                        setup_postdata( $GLOBALS['post'] =& $post_object );
+                        // add .php to the template -> woocommerce requires it
+                        // but get_template_part does not
+                        wc_get_template( $instance['template'] . '.php', $template_args );
+                    }
+                }
+            } else {
 
-				foreach ($response['itemScores'] as $i ) {
-					if ( get_post_status ( $i['item'] ) == 'publish' ) {
-						$post_object = get_post( $i['item'] );
-						setup_postdata( $GLOBALS['post'] =& $post_object );
-						// REPLACE by custom parameter
-						get_template_part( $instance['template'] );
+                foreach ($response['itemScores'] as $i ) {
+                    if ( get_post_status ( $i['item'] ) == 'publish' ) {
+                        $post_object = get_post( $i['item'] );
+                        setup_postdata( $GLOBALS['post'] =& $post_object );
+                        // REPLACE by custom parameter
+                        get_template_part( $instance['template'] );
 
-					}
-				}
+                    }
+                }
 
-			}
+            }
 
-			wp_reset_postdata();
+            wp_reset_postdata();
 
-			// -----------------------------------------------
-			// till here
-			echo $args['after_widget'];
+            // -----------------------------------------------
+            // till here
+            echo $args['after_widget'];
         }
 
     }
@@ -145,7 +145,7 @@ class Recomendo_Widget extends WP_Widget {
     // Widget Backend
     public function form( $instance ) {
 
-		global $recomendo;
+        global $recomendo;
 
         if ( isset( $instance[ 'title' ] ) ) {
             $title = $instance[ 'title' ];
@@ -169,26 +169,26 @@ class Recomendo_Widget extends WP_Widget {
             $number = __( 5, 'recomendo_widget_domain' );
         }
 
-		if ( isset( $instance[ 'template' ] ) ) {
+        if ( isset( $instance[ 'template' ] ) ) {
             $template = $instance[ 'template' ];
         }
         else {
-			if ( class_exists( 'woocommerce' ) ) {
-            	$template = __( 'content-widget-product', 'recomendo_widget_domain' );
-			} else {
-				$template = __( 'content-' . $recomendo->options['post_type'] , 'recomendo_widget_domain' );
-			}
+            if ( class_exists( 'woocommerce' ) ) {
+                $template = __( 'content-widget-product', 'recomendo_widget_domain' );
+            } else {
+                $template = __( 'content-' . $recomendo->options['post_type'] , 'recomendo_widget_domain' );
+            }
         }
 
 
-		if ( isset( $instance[ 'class' ] ) ) {
+        if ( isset( $instance[ 'class' ] ) ) {
             $class = $instance[ 'class' ];
         } else {
-			if ( class_exists( 'woocommerce' ) ) {
-				$class = __( 'product_list_widget', 'recomendo_widget_domain' );
-			} else {
-				$class = __( 'widget_text', 'recomendo_widget_domain' );
-			}
+            if ( class_exists( 'woocommerce' ) ) {
+                $class = __( 'product_list_widget', 'recomendo_widget_domain' );
+            } else {
+                $class = __( 'widget_text', 'recomendo_widget_domain' );
+            }
         }
 
 
@@ -222,12 +222,12 @@ class Recomendo_Widget extends WP_Widget {
             <input class="widefat" id="<?php echo $this->get_field_id( 'number' ); ?>" name="<?php echo $this->get_field_name( 'number' ); ?>" type="number" value="<?php echo esc_attr( $number ); ?>" />
         </p>
 
-		<p>
+        <p>
             <label for="<?php echo $this->get_field_id( 'template' ); ?>"><?php _e( 'Template part:' ); ?></label>
             <input class="widefat" id="<?php echo $this->get_field_id( 'template' ); ?>" name="<?php echo $this->get_field_name( 'template' ); ?>" type="text" value="<?php echo esc_attr( $template ); ?>" />
         </p>
 
-		<p>
+        <p>
             <label for="<?php echo $this->get_field_id( 'class' ); ?>"><?php _e( 'CSS class:' ); ?></label>
             <input class="widefat" id="<?php echo $this->get_field_id( 'class' ); ?>" name="<?php echo $this->get_field_name( 'class' ); ?>" type="text" value="<?php echo esc_attr( $class ); ?>" />
         </p>
@@ -243,8 +243,8 @@ class Recomendo_Widget extends WP_Widget {
         $instance['type'] = ( ! empty( $new_instance['type'] ) ) ? strip_tags( $new_instance['type'] ) : '';
         $instance['number'] = ( ! empty( $new_instance['number'] ) ) ? strip_tags( $new_instance['number'] ) : '';
 
-		$instance['template'] = ( ! empty( $new_instance['template'] ) ) ? str_replace( '.php', '', strip_tags( $new_instance['template'] ) ) : '';
-		$instance['class'] = ( ! empty( $new_instance['class'] ) ) ? strip_tags( $new_instance['class'] ) : '';
+        $instance['template'] = ( ! empty( $new_instance['template'] ) ) ? str_replace( '.php', '', strip_tags( $new_instance['template'] ) ) : '';
+        $instance['class'] = ( ! empty( $new_instance['class'] ) ) ? strip_tags( $new_instance['class'] ) : '';
 
         return $instance;
     }

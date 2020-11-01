@@ -4,9 +4,9 @@
 * Plugin URI: https://www.recomendo.ai
 * Description: Make your website smart with Artificial Intelligence recommendations.
 * Author: Recomendo
-* Version: 1.0.4
+* Version: 1.0.5
 * Requires at least: 4.7
-* Tested up to: 4.9.8
+* Tested up to: 5.0
 * WC requires at least: 3.0
 * WC tested up to: 3.5
 * License: GPLv2
@@ -41,11 +41,11 @@ if ( class_exists ( 'Recomendo_Admin') ) {
 
     // Check Recomendo is Authorized and Configured to Continue
     if ( Recomendo_Admin::is_configured() ) {
-		$options = get_option( 'recomendo_options' );
+        $options = get_option( 'recomendo_options' );
         if ( class_exists( 'Recomendo_Plugin' ) ) {
             // launch the plugin
             $recomendo = new Recomendo_Plugin( $options );
 
-		}
-	}
+        }
+    }
 }

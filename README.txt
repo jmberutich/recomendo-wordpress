@@ -2,7 +2,7 @@
 Contributors: recomendo
 Tags: artificial intelligence, machine learning, related posts, recommendations, personalization
 Requires at least: 4.7
-Tested up to: 4.9
+Tested up to: 5.0
 Requires PHP: 5.2.4
 Stable tag: trunk
 License: GPLv2 or later
@@ -124,6 +124,13 @@ Recomendo needs to know how your visitors browse your site. We collect the user 
 
 
 == Changelog ==
+= 1.0.5 =
+* WordPress 5 tested
+
+* Fixed race condition while sending train requests
+
+* Configuration to allow Main Search engines to receive predictions to improve SEO
+
 = 1.0.4 =
 * WooCommerce 3.5 tested
 
