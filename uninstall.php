@@ -12,6 +12,12 @@ delete_option( 'recomendo_api' );
 delete_option( 'recomendo_options' );
 delete_option( 'recomendo_woo_options' );
 delete_option( 'recomendo_data_saved_ok' );
+delete_option( 'recomendo_progress_background');
+delete_option( 'recomendo_progress_background_orders');
+delete_option( 'recomendo_progress_background_users');
+delete_option( 'recomendo_items_background_completed');
+delete_option( 'recomendo_users_background_completed');
+delete_option( 'recomendo_orders_background_completed');
 delete_transient( 'recomendo_token' );
 delete_post_meta_by_key( 'recomendo_exclude_metabox' );
 

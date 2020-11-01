@@ -25,18 +25,30 @@ class Recomendo_Background_Item_Copy extends Recomendo_Background_Process {
 	*
 	* @return mixed
 	*/
+	
 	protected function task( $item ) {
 
 		// Actions to perform
 		global $recomendo;
-
+		
+			$progress =  intVal(get_option('recomendo_progress_background'));
+			$progress++;
+			$post_type =  $recomendo->options['post_type'];
+			$total_items = wp_count_posts($post_type)->publish;
+			$percentage = ($progress * 100 ) / $total_items;
+			
+			update_option('recomendo_progress_background',$progress);
+			update_option('recomendo_items_background_completed', $percentage);
+			error_log("------[RECOMENDO] PROGRESS BACKGROUND task running item --------" . $progress);
+		
+		
 		// Check if WPML is installed and get the id of the original language post (not translation)
 		if ( function_exists('icl_object_id') ) {
 			global $sitepress;
 			$item = icl_object_id( $item, $recomendo->options['post_type'], true, $sitepress->get_default_language() );
 		}
 
-		if ( class_exists( 'woocommerce' ) ) {
+		if ( class_exists( 'woocommerce' ) && ($recomendo->options['post_type'] == 'product') ) {
 			$terms = get_the_terms( $item, 'product_cat' );
 			$taglist = get_the_terms( $item, 'product_tag' );
 			$product = wc_get_product( $item );
@@ -79,7 +91,8 @@ class Recomendo_Background_Item_Copy extends Recomendo_Background_Process {
 		);
 
 		$response = $recomendo->client->set_item($item, $properties);
-
+		
+		
 
 		if ( is_wp_error( $response ) ) {
 			error_log( "[RECOMENDO] --- Error adding an item.", $item );
@@ -96,7 +109,9 @@ class Recomendo_Background_Item_Copy extends Recomendo_Background_Process {
 	* performed, or, call parent::complete().
 	*/
 	protected function complete() {
+		
 		parent::complete();
+		update_option('recomendo_items_background_completed', 100);
 		// Show notice to user or perform some other arbitrary task...
 	}
 

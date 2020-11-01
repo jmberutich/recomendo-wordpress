@@ -9,7 +9,7 @@ $avoid_post_types = array(
     'customize_changeset', 'oembed_cache', 'mc4wp-form', 'user_request',
     'mailpoet_page',  'product_variation', 'shop_order', 'shop_order_refund',
     'shop_coupon', 'shop_webhook', 'vc4_templates', 'vc_grid_item' ,
-    'wpcf7_contact_form', 'featured_item', 'sidebar', 'blocks',
+    'wpcf7_contact_form', 'featured_item', 'sidebar', 'blocks','wp_block',
     'scheduled-action'
 );
 
@@ -431,44 +431,94 @@ $avoid_post_types = array(
     <?php if ( Recomendo_Admin::is_authorized() ) : ?>
         <div class="recomendo-postbox">
             <h2><?php esc_html_e( 'System Status', 'admin-screen' ); ?></h2>
-            <table class="recomendo-system-status" cellspacing="0" cellpadding="0">
-                <?php if ( Recomendo_Admin::is_configured() ) : ?>
-                    <tr>
-                        <td><?php _e( 'Event Server:', 'admin-screen' ); ?></td>
-                        <td>
-                            <?php
-                            if ( Recomendo_Plugin::is_event_server_up() == 1 ) {
-                                printf( '<code class="status-good">%s</code>', esc_html_x( 'Connection OK', 'backend', 'admin-screen' ) );
-                            } elseif  ( Recomendo_Plugin::is_event_server_up() == 0 ) {
-                                printf( '<code class="status-bad">%s</code> ', esc_html_x( 'Connection DOWN', 'backend', 'admin-screen' ) );
-                                printf( esc_html_x( 'Servers not reachable. Please contact support.', 'backend', 'admin-screen' ) );
-                            } else  {
-                                printf( '<code class="status-okay">%s</code> ', esc_html_x( 'Connection UP', 'backend', 'admin-screen' ) );
-                                printf( esc_html_x( 'Event server has no data yet. Data will be copied automatically. Please check again in 30 minutes.', 'backend', 'admin-screen' ) );
+			<?php if ( Recomendo_Admin::is_configured() ) : 
+			    $type_selected =  ucfirst( $options['post_type'].'s' );
+			?>
+                 <div id="forcesync-notice" class="notice-warning-recomendo">
 
+                    <span style="line-height: 2em;"><?php _e('This will copy all your data to Recomendo servers. You should only do this process when instructed by our Support team.','admin-screen')?></span>
+                    <a href='<?php echo admin_url( 'admin-post.php' ); ?>?action=accept_force_datasync' >Accept</a>
+                    <a class='recomendo-cancel-force-sync' onclick="cancel_datasync()" >Cancel</a>
+                 </div>
+			 
+			 
+        	    <table class="recomendo-system-status" cellspacing="0" cellpadding="0">
+			    <tr>
+			 	    <td class="recomendo-data-analized"><?php _e('Data Analyzed:','admin-screen') ?></td>
+			 	
+				    <td id="progress_item_bg" class="progress_bg">
+						<?php if(get_option('recomendo_items_background_completed') == 100){
+							echo '<code class="status-good">'.$type_selected.': <span>'.get_option('recomendo_items_background_completed').'% </span></code>';
+						}else{
+							echo '<code class="status-okay">'.$type_selected.': <span>'.get_option('recomendo_items_background_completed').'% </span></code>';
+						}
+						?>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <a onclick="showSyncNotice()" class='recomendo-cancel-force-sync'>
+                            <em><small>
+                                <?php _e('Force Data Sync', 'admin-screen');?>
+                            </em></small>
+                        </a>
+                    </td>
+				    <td id="progress_users_bg" class="progress_bg">
+						<?php if(get_option('recomendo_users_background_completed') == 100){
+							echo '<code class="status-good">Users: <span>'. get_option('recomendo_users_background_completed').'%</span></code>';
+						}else{
+							echo '<code class="status-okay">Users: <span>'. get_option('recomendo_users_background_completed').'% </span></code>';
+						}
+						?>
+				    </td>
+                </tr>
+                <tr>
+                    <td></td>
+				    <?php if($options['post_type'] == "product" ) : ?>
+                        <td id='progress_orders_bg' class="progress_bg">
+                            <?php if(get_option('recomendo_orders_background_completed') == 100){
+                                echo '<code class="status-good">Orders: <span>'. get_option('recomendo_orders_background_completed').'% </span></code>';
+                            }else{
+                                echo '<code class="status-okay">Orders: <span>'. get_option('recomendo_orders_background_completed').'% </span></code>';
                             }
                             ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><?php _e( 'Recommendation Server:', 'admin-screen' ); ?></td>
-                        <td>
-                            <?php
+					    </td>
+                    <?php endif; ?>
+                </tr>
+                <tr>
+                    <td><?php _e( 'Event Server:', 'admin-screen' ); ?></td>
+                    <td>
+                        <?php if ( Recomendo_Plugin::is_event_server_up() == 1 ) {
+                            printf( '<code class="status-good">%s</code>', esc_html_x( 'Connection OK', 'backend', 'admin-screen' ) );
+                        } elseif  ( Recomendo_Plugin::is_event_server_up() == 0 ) {
+                            printf( '<code class="status-bad">%s</code> ', esc_html_x( 'Connection DOWN', 'backend', 'admin-screen' ) );
+                            printf( esc_html_x( 'Servers not reachable. Please contact support.', 'backend', 'admin-screen' ) );
+                        } else  {
+                            printf( '<code class="status-okay">%s</code> ', esc_html_x( 'Connection UP', 'backend', 'admin-screen' ) );
+                            printf( esc_html_x( 'Event server has no data yet. Data will be copied automatically. Please check again in 30 minutes.', 'backend', 'admin-screen' ) );
+                        }
+                        ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td><?php _e( 'Recommendation Server:', 'admin-screen' ); ?></td>
+                    <td>
+                        <?php
 
-                            if ( Recomendo_Plugin::is_prediction_server_up() == 1 ) {
-                                _e( '<code class="status-good">Connection OK</code>', 'admin-screen' );
-                            } elseif (  Recomendo_Plugin::is_prediction_server_up() == 0 and Recomendo_Plugin::is_event_server_up() == 1) {
-                                _e( '<code class="status-okay">Connection DOWN</code> Recomendo servers do not have any data yet. Please check again in 30 minutes.', 'admin-screen' );
-                            }  elseif ( Recomendo_Plugin::is_prediction_server_up() == 0 ) {
-                                _e( '<code class="status-bad">Connection DOWN</code> Servers not reachable. Please contact support.', 'admin-screen' );
-                            } elseif ( Recomendo_Plugin::is_prediction_server_up() == 2 ) {
-                                _e( '<code class="status-bad">Connection UP</code> You have reached your monthly API quota limit. Please contact support to upgrade your subscription.', 'admin-screen' );
-                            }
+                        if ( Recomendo_Plugin::is_prediction_server_up() == 1 ) {
+                            _e( '<code class="status-good">Connection OK</code>', 'admin-screen' );
+                        } elseif (  Recomendo_Plugin::is_prediction_server_up() == 0 and Recomendo_Plugin::is_event_server_up() == 1) {
+                            _e( '<code class="status-okay">Connection DOWN</code> Recomendo servers do not have any data yet. Please check again in 30 minutes.', 'admin-screen' );
+                        }  elseif ( Recomendo_Plugin::is_prediction_server_up() == 0 ) {
+                            _e( '<code class="status-bad">Connection DOWN</code> Servers not reachable. Please contact support.', 'admin-screen' );
+                        } elseif ( Recomendo_Plugin::is_prediction_server_up() == 2 ) {
+                            _e( '<code class="status-bad">Connection UP</code> You have reached your monthly API quota limit. Please contact support to upgrade your subscription.', 'admin-screen' );
+                        }
 
-                            ?>
-                        </td>
-                    </tr>
-                <?php endif; ?>
+                        ?>
+                    </td>
+                </tr>
+
                 <tr>
                     <td><?php _e( 'Curl Support:', 'admin-screen' ); ?></td>
                     <td>
@@ -535,7 +585,8 @@ $avoid_post_types = array(
                         </td>
                     </tr>
                 <?php endif; ?>
-            </table>
+                </table>
+            <?php endif; ?>
         </div>
 	<?php endif; ?>
 </div>

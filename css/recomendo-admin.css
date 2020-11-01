@@ -157,9 +157,24 @@
 	display: inline-block;
 	margin-top: 4px;
 }
-
-
-
+.recomendo-data-analized{
+	width: 167px;
+}
+td.progress_bg {
+    text-transform: capitalize;
+}
+.recomendo-cancel-force-sync{
+	text-decoration: underline;
+	cursor: pointer;
+}
+.notice-warning-recomendo{
+	background: #fff;
+    border-left: 4px solid #fff;
+    box-shadow: 0 1px 1px 0 rgba(0,0,0,.1);
+	padding: 1px 12px;
+	border-left-color: #ffb900;
+	display: none;
+}
 
 @media screen and (max-width:870px) {
 	#recomendo-dashboard .recomendo-column,

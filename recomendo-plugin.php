@@ -92,10 +92,33 @@ class Recomendo_Plugin {
         add_action( 'widgets_init', array( $this, 'load_widget' ) );
         // Creates the [recomendo] shortcode
         add_shortcode( 'recomendo', array( $this, 'show_shortcode' ) );
+        //Register Recomendo Blocks for Gutenberg
+        add_action('init',array( $this, 'register_recomendo_blocks'));
+        //Function to retrieve post type
+        add_action('wp_ajax_return_posttype_variable', array($this,'return_posttype_variable'));
+         //Function to show all templates in current theme
+        add_action('wp_ajax_recomendo_all_templates', array($this,'recomendo_all_templates'));
+        //Register function so ajax function can listen to this
+        add_action('wp_ajax_get_items_progress_background',array($this,'get_items_progress_background'));
+        //Register option in database for items progress
+        add_option('recomendo_progress_background', 0);
+        add_option('recomendo_items_background_completed',0);
+        //Register option in database for users progress
+        add_option('recomendo_progress_background_users', 0);
+        add_option('recomendo_users_background_completed',0);
+        //Register option in database for orders progress
+        add_option('recomendo_progress_background_orders', 0);
+        add_option('recomendo_orders_background_completed',0);
+        //Add general scripts
+        add_action('admin_enqueue_scripts',array($this,'recomendo_register_scripts'));
+        //Callback when Force Data Sync is clicked
+        add_action( 'admin_post_accept_force_datasync', array($this,'accept_force_datasync' )); 
+        //Action that runs if the plugins has been upated
+        add_action('upgrader_process_complete',array( $this,'recomendo_is_updated'), 10, 2);
         // Show recommendations in WooCommerce related products
         if ( isset( $this->woo_options['woo_show_related'] ) )
             add_filter( 'woocommerce_related_products', array( $this, 'show_related_products' ), 10, 1);
-        // Show recommendations in the cart
+        // Show recommendations in the cart 
         if ( isset( $this->woo_options['woo_show_cart'] ) )
             add_action( 'woocommerce_after_cart_table', array( $this, 'show_cart_recommendations'), 10, 1);
         // UPDATE PRODUCT IS FEATURED on  Woocommerce admin panel
@@ -107,13 +130,237 @@ class Recomendo_Plugin {
     } //end of method
 
 
+    /**
+     * Register Javascripts,CSS and callbacks for the Gutenberg Block
+     */
+    public function register_recomendo_blocks(){
+        if ( ! function_exists( 'register_block_type' ) ) {
+            // Gutenberg is not active.
+            return;
+        }
 
+        wp_register_script(
+            'recomendo-block-script',
+            plugins_url('/js/index.js',__FILE__),
+            array('wp-blocks','wp-element','wp-i18n','wp-components','wp-editor')
+        );
+        wp_register_style(
+            'recomendo-template-style',
+            plugins_url( '/css/recomendo-template.css', __FILE__ ),
+            array( 'wp-edit-blocks' )
+        );
+        wp_register_style(
+            'recomendo-template-style-editor',
+            plugins_url( '/css/recomendo-template-editor.css', __FILE__ ),
+            array( 'wp-edit-blocks' )
+        );
+     
+        wp_localize_script( 'recomendo-block-script', 'ajax_object', array( 'ajax_url' => admin_url( 'admin-ajax.php' ) ) );
+        
+        $postType = $this->options['post_type'];
+
+        if($postType != 'product'){
+            $defaultTemplate = 'content-recomendo';
+        }
+        else{
+            $defaultTemplate = 'content-'.$postType;
+        }
+        register_block_type('recomendo/recomendo-block',array(
+            'editor_script' => 'recomendo-block-script',
+            'style' => 'recomendo-template-style',
+            'editor_style' => 'recomendo-template-style-editor',
+            'render_callback'=> array($this, 'show_shortcode'),
+            'attributes' => [
+                'number' => [
+                    'default' => 16
+                ],
+                'type' => [
+                    'default' => 'personalized'
+                ],
+                'template' => [
+                    'default' => $defaultTemplate
+                ]
+            ]
+        ));
+    }
+    
+    /*
+    *Enqueue general javascripts files for the plugin
+    */ 
+   public function recomendo_register_scripts(){
+       wp_enqueue_script('recomendo-general-scripts',
+                        plugin_dir_url(__FILE__).'js/recomendo-js-general.js', 
+                        true
+                        );
+       wp_localize_script( 'recomendo-general-scripts', 'ajax_object', array( 'ajax_url' => admin_url( 'admin-ajax.php' ) ) );
+   }
 
     public function load_widget() {
         register_widget( 'Recomendo_Widget' );
     }
 
+    //Function that only returns the post_type selected on the Recomendo settings when installed
+    public function return_posttype_variable(){
+        if(function_exists('WC') && class_exists( 'WooCommerce' ) ){
+            $is_woocommerce_active = "true";
+            $int = apply_filters( 'loop_shop_columns', $int ); 
+                         
+            if ( !empty( $int ) ) {                       
+                $woo_columns = intVal($int);
+            }
 
+        }else{
+            $is_woocommerce_active = "false";
+        }
+        $postType = $this->options['post_type'];
+
+        $array = [
+            'post_type' => $postType,
+            'is_woocommerce' => $is_woocommerce_active,
+           'woo_columns'=> $woo_columns
+        ];
+        $data = json_encode($array);
+        echo $data;
+        wp_die();
+    }
+    
+    //Get all templates 
+    public function recomendo_all_templates(){
+        //get templates in the theme
+        $templates = wp_get_theme()->get_page_templates();
+
+   
+        //set default template 
+        if($this->options['post_type'] == 'product'){
+            $array[] = array("value" => 'content-product',   "label" => 'content-product'); 
+        }
+            $array[] = array("value" => 'content-recomendo',   "label" => 'content-recomendo');
+
+        foreach ( $templates as $template_name => $template_filename )
+        {
+            //if the templates route  has levels eg: /folder/file.php removes the '/'
+            $exploded_name = explode('/',$template_name );
+            foreach($exploded_name as $expresion){
+                //search for the ones that starts with 'content-'
+                if(preg_match('/^(content-)/i', $expresion)){
+                  //Search for the element that has .php and if it does, remove it and add to array
+                  if (preg_match('/(\.php)$/i', $expresion)) {
+                      $new_templateName = substr($expresion,0,-4);
+                      $array[] = array("value" => $new_templateName,   "label" => $new_templateName);
+                     
+                  }
+                }
+                  
+              }
+
+        }
+        $data = json_encode($array);
+        echo $data;
+       wp_die();
+    }
+
+    //Function to locate the template given
+    public function recomendo_locate_template( $template_name, $template_path = '', $default_path = '' ,$woo_path ='',$woo_theme_path='') {
+      
+       
+        // Set variable to search in recomendo folder of theme.
+        if ( ! $template_path ) :
+            $template_path = 'recomendo-templates/';
+        
+        endif;  // Set default plugin templates path.
+        if ( ! $default_path ) :
+            $default_path = plugin_dir_path( __FILE__ ) . 'recomendo-templates/'; // Path to the template folder
+          
+        endif;
+        if(!$woo_path) : //if WooCoomerce installed, set path to templates folder
+            if(function_exists('WC')){
+                $woo_path = WC()->plugin_path(__FILE__) . '/templates/';
+            }
+        endif;   
+        //Set path if there is a woocommerce folder in the active theme
+        if(!$woo_theme_path) :
+            $woo_theme_path = 'woocommerce/';
+        endif; 
+
+
+        // Search template file in theme folder.
+        $template = locate_template( array(
+            $template_path . $template_name,
+            $template_name ) );
+           
+        if(! $template){
+            $template = locate_template($woo_theme_path . $template_name);
+        }
+        if(! $template){
+            $template = $default_path . $template_name;
+        }
+           
+        
+        if( ! file_exists( $template )){
+            $template = $woo_path . $template_name;
+        }
+
+        return apply_filters( 'recomendo_locate_template', $template, $template_name, $template_path, $default_path , $woo_path, $woo_theme_path);
+    }
+
+
+    public function recomendo_get_template( $template_name, $args = array(), $template_path = '', $default_path = '', $woo_path='',$woo_theme_path = '' ) {
+        if ( is_array( $args ) && isset( $args ) ) :
+            extract( $args );
+        endif;
+        $template_file = $this->recomendo_locate_template( $template_name, $template_path, $default_path , $woo_path, $woo_theme_path);
+       // var_dump($template_file);
+        if ( ! file_exists( $template_file ) ) :
+            _doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $template_file ), '1.0.0' );
+            return;
+        endif;
+        include $template_file;
+    }
+
+    /**
+     * This function runs when datasync is accepted to be forced via Recomendo Admin
+     * works with admin_post action hook declared on line 115
+     * The action is triggered on dashboard.php
+     */
+    public function accept_force_datasync(){
+        delete_option( 'recomendo_data_saved_ok' );
+        //Update option in database for items progress
+        update_option('recomendo_progress_background', 0);
+        update_option('recomendo_items_background_completed',0);
+        //Update option in database for users progress
+        update_option('recomendo_progress_background_users', 0);
+        update_option('recomendo_users_background_completed',0);
+        //Update option in database for orders progress
+        update_option('recomendo_progress_background_orders', 0);
+        update_option('recomendo_orders_background_completed',0);
+        
+        $this->copy_data_to_eventserver();
+        
+        wp_safe_redirect(admin_url('admin.php').'?page=recomendo_plugin');
+    }
+  
+    /**
+     * This function runs when WordPress completes its upgrade process
+     * It iterates through each plugin updated to see if ours is included
+     * @param $upgrader_object Array
+     * @param $options Array
+     */
+    public function recomendo_is_updated($upgrader_object,$options){
+        // The path to our plugin's main file
+        $our_plugin = plugin_basename( __FILE__ );
+        // If an update has taken place and the updated type is plugins and the plugins element exists
+        if( $options['action'] == 'update' && $options['type'] == 'plugin' && isset( $options['plugins'] ) ) {
+        // Iterate through the plugins being updated and check if ours is there
+            foreach( $options['plugins'] as $plugin ) {
+                if( $plugin == $our_plugin ) {
+                    update_option('recomendo_items_background_completed',100);
+                    update_option('recomendo_users_background_completed',100);
+                    update_option('recomendo_orders_background_completed',100);
+
+                }
+            }
+        }
+    }
 
     public function detect_crawler() {
         // User lowercase string for comparison.
@@ -218,23 +465,40 @@ class Recomendo_Plugin {
     // Creates shortcode [recomendo]
     public function show_shortcode( $atts, $content=null ) {
 
+        $postType = $this->options['post_type'];
+
+        if($postType != 'product'){
+            $defaultTemplate = 'content-recomendo';
+        }
+        else{
+            $defaultTemplate = 'content-'.$postType;
+        }
+
         $a = shortcode_atts( array(
          'number' => 16,
          'type' => 'personalized',
-         'template' => 'content-' . $this->options['post_type']
+         'template' => $defaultTemplate
         ), $atts );
 
         // get the slug and name from the shortcode template arg
-        $template = explode( '-', basename( $a['template'], '.php') );
-        $template_slug = $template[0];
-        $template_name = implode( '-', array_slice( $template, 1) );
+        $template_woo = explode( '-', basename( $a['template'], '.php') );
+        $template_slug = $template_woo[0];
+        $template_name = implode( '-', array_slice( $template_woo, 1) );
+        $template = $a['template'].'.php';
 
         switch (  strtolower( $a['type'] ) ) {
             case 'personalized' :
+                if ( class_exists( 'woocommerce' ))  {
+                    WC()->frontend_includes();
+                }
                 $response = $this->get_user_recommendations( intval( $a['number']));
                 break;
             case 'similar' :
                 if ( is_singular( $this->options['post_type'] ) ) {
+                    if ( class_exists( 'woocommerce' ))  {
+                        WC()->frontend_includes();
+                    }
+
                     // Check if WPML is installed and get the id of the original language post (not translation)
                     if ( function_exists('icl_object_id') ) {
                         global $sitepress;
@@ -250,10 +514,14 @@ class Recomendo_Plugin {
                 break;
             case 'complementary' :
                 $itemset_products = array();
-                if ( class_exists( 'woocommerce' ) ) {
+                if ( class_exists( 'woocommerce' ))  {
 
                 global $woocommerce;
-                    foreach ($woocommerce->cart->get_cart() as $cart_item_key => $values) {
+                WC()->frontend_includes();
+                WC()->session = new WC_Session_Handler();
+                WC()->session->init();
+                WC()->cart = new WC_Cart();
+                    foreach (WC()->cart->get_cart() as $cart_item_key => $values) {
 
                         // Check if WPML is installed and get the id of the original language post (not translation)
                         if (function_exists('icl_object_id')) {
@@ -285,34 +553,44 @@ class Recomendo_Plugin {
                 }
                 break;
             case 'trending' :
+            if ( class_exists( 'woocommerce' ))  {
+                WC()->frontend_includes();
+            }
+                
                 $response = $this->get_trending_items( intval( $a['number']));
                 break;
 
         }
-
+      
         if ( $response != false and array_key_exists( 'itemScores', $response ) ) {
+           
             ob_start();
-            if ( class_exists( 'woocommerce' ) ) {
-                woocommerce_product_loop_start();
+            if ( class_exists( 'woocommerce' ) && ($postType == 'product')) {
+               woocommerce_product_loop_start();
+                echo '<div class="recomendo-container">';
                 foreach ($response['itemScores'] as $i ) {
                     if ( get_post_status ( $i['item'] ) == 'publish' ) {
                         $post_object = get_post( $i['item'] );
                         setup_postdata( $GLOBALS['post'] =& $post_object );
-                        wc_get_template_part( $template_slug, $template_name );
+                        //wc_get_template_part( $template_slug, $template_name );
+                        $this->recomendo_get_template($template);
+                        
                     }
                 }
-                woocommerce_product_loop_end();
+                echo '</div>';
+               woocommerce_product_loop_end();
             } else {
-
+                echo '<div class="recomendo-container recomendo">';
                 foreach ($response['itemScores'] as $i ) {
                     if ( get_post_status ( $i['item'] ) == 'publish' ) {
                         $post_object = get_post( $i['item'] );
                         setup_postdata( $GLOBALS['post'] =& $post_object );
                         // REPLACE by custom parameter
-                        get_template_part( $template_slug, $template_name );
+                        //get_template_part( $template_slug, $template_name );
+                       $this->recomendo_get_template($template);
                     }
                 }
-
+                echo '</div>';
             }
 
             wp_reset_postdata();
@@ -991,7 +1269,6 @@ class Recomendo_Plugin {
             return;
         }
 
-
         $response = $this->client->set_user( $user_id, array(
                                         'user_agent' => $_SERVER['HTTP_USER_AGENT'],
                                         'ip_address' => $_SERVER['REMOTE_ADDR']
@@ -1030,6 +1307,7 @@ class Recomendo_Plugin {
     // Delete user from Recomendo
     public function delete_user( $user_id ) {
         $response = $this->client->delete_user( $user_id );
+
         // check the response
         if ( is_wp_error( $response) ) {
             error_log( "[RECOMENDO] --- Error deleting a user." );
@@ -1093,6 +1371,7 @@ class Recomendo_Plugin {
 
         $response = $this->client->set_item($postid, $properties);
 
+
         if ( !is_wp_error( $response ) ) {
             $response = $this->client->send_train_request();
 
@@ -1113,7 +1392,6 @@ class Recomendo_Plugin {
     public function add_all_items_background() {
 
         //$options = get_option( 'recomendo_options ' );
-
         $args = array(
             'post_type' => $this->options['post_type'],
             'fields' => 'ids',
@@ -1128,12 +1406,42 @@ class Recomendo_Plugin {
 
         foreach ($post_ids as $id) {
             $this->bg_item_copy->push_to_queue( $id );
+            
         }
-
         $this->bg_item_copy->save()->dispatch();
 
     } //end-of-method add_all_items_background()
 
+
+    /**
+     * This function returns the values of the progress
+     * stored in wordpress options table
+     * updated on a background process: 
+     */
+    public function get_items_progress_background(){
+      
+        
+        $item_progress_complete = intVal(get_option('recomendo_items_background_completed'));
+        $user_progress_complete = intVal(get_option('recomendo_users_background_completed'));
+        
+        if(class_exists( 'woocommerce' ) && $this->options['post_type'] == 'product'){
+           
+            $order_progress_complete = intVal(get_option('recomendo_orders_background_completed'));
+            $array[] = array(
+                "items" => $item_progress_complete,
+                "users" => $user_progress_complete,
+                "orders" => $order_progress_complete);
+        }else{
+            $array[] = array(
+               
+                "items" => $item_progress_complete,
+                "users" => $user_progress_complete);
+        }
+       
+        $data = json_encode($array);
+        echo $data;
+        wp_die();
+    }
 
     // delete item from Recomendo when Post status changes to not Published
     public function delete_item( $new_status, $old_status, $post ) {
@@ -1156,7 +1464,7 @@ class Recomendo_Plugin {
 
             // Send the $delete event
             $response = $this->client->delete_item( $post->ID );
-
+         
             if ( !is_wp_error( $response )) {
                 $response = $this->client->send_train_request();
 
@@ -1392,7 +1700,6 @@ class Recomendo_Plugin {
         $this->bg_order_copy->save()->dispatch();
 
     } //end-of-method add_all_orders_background()
-
 
 
     public function copy_data_to_eventserver() {

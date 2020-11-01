@@ -1,0 +1,98 @@
+.recomendo-container{
+    display: flex;
+    flex-wrap: wrap;
+    padding-top: 15px;
+}
+.recomendo-item {
+    border-radius: 5px;
+    box-shadow: #ccc 1px 1px 5px;
+}
+li.recomendo-item{
+    list-style: none;
+}
+.recomendo-title{
+    margin-top: 0  !important;
+    font-size: 1em;
+    padding: 10px;
+}
+.recomendo-template-content a{
+    text-decoration: none !important;
+    display: flex;
+    justify-content: center;
+}
+.recomendoTextCenter{
+    text-align: center;
+}
+article[id*="recommendation-"] a, article[id*="recommendation-"] a:hover{
+    box-shadow: none !important;
+    -webkit-box-shadow:none; 
+    -moz-box-shadow:none;
+}
+.recomendo-button{
+  margin: 5px auto;
+  display: block;
+}
+
+.recomendo-widget{
+    display: flex;
+    padding: 5px;
+}
+.recomendo-widget-content{
+    display: flex;
+    justify-content: space-evenly;
+    flex-direction: column;
+    margin-left: 10px;
+    
+}
+.recomendo-widget img{
+    height: 70px;
+}
+.product_list_widget li>a {
+    display: block;
+}
+.product_list_widget li img {
+    max-width: 2.617924em;
+    float: right;
+}
+.product_list_widget li {
+    padding: 1em 0;
+    border-bottom: 1px solid rgba(0,0,0,.05);
+}
+/*WooCommerce Content-product template*/
+ul.products li, .woocommerce-page ul.products li.product {
+    float: left;
+    margin: 0 3% 2.992em 0;
+    padding: 0;
+    position: relative;
+    width: 22.05%;
+    margin-left: 0;
+}
+ul.products li.recomendo-item{
+    list-style: none;
+}
+ul.products li.recomendo-item{
+    clear:both
+}
+ ul.products li.last{
+    margin-right:0
+}
+ul.products.columns-1 li.recomendo-item{
+    width:100%;margin-right:0
+}
+ul.products.columns-2 li.recomendo-item{
+    width:47%
+}
+ul.products.columns-3 li.recomendo-item{
+    width:29%;
+}
+ul.products.columns-4 li.recomendo-item{
+    width:21%;
+}
+ul.products.columns-5 li.recomendo-item{
+    width:16.95%
+}
+ul.products.columns-6 li.recomendo-item{
+    width:13.5%
+}
+
+/*End WooCommerce*/

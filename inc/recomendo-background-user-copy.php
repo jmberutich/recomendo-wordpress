@@ -29,6 +29,15 @@ class Recomendo_Background_User_Copy extends Recomendo_Background_Process {
 		// Actions to perform
 
 		global $recomendo;
+		$progress =  intVal(get_option('recomendo_progress_background_users'));
+		$progress++;
+		$wp_users = count_users();		
+		$total_users = $wp_users['total_users'];
+		$percentage = ($progress * 100) / $total_users;
+		update_option('recomendo_progress_background_users', $progress);
+		update_option('recomendo_users_background_completed', $percentage);
+		error_log("------[RECOMENDO] PROGRESS BACKGROUND task running users---------".$progress);
+
 		$response = $recomendo->client->set_user( $item, array(
                                         'user_agent' => '',
                                         'ip_address' => ''
@@ -53,6 +62,7 @@ class Recomendo_Background_User_Copy extends Recomendo_Background_Process {
 	 */
 	protected function complete() {
 		parent::complete();
+		update_option('recomendo_users_background_completed', 100);
 		// Show notice to user or perform some other arbitrary task...
 
 	}

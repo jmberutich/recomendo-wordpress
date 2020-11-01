@@ -37,6 +37,7 @@ if ( ! class_exists( 'Recomendo_Background_Process' ) ) {
 		 * @access protected
 		 */
 		protected $cron_interval_identifier;
+		
 		/**
 		 * Initiate new background process
 		 */
@@ -238,11 +239,13 @@ if ( ! class_exists( 'Recomendo_Background_Process' ) ) {
 		 * within server memory and time limit constraints.
 		 */
 		protected function handle() {
+			
 			$this->lock_process();
 			do {
 				$batch = $this->get_batch();
 				foreach ( $batch->data as $key => $value ) {
 					$task = $this->task( $value );
+				
 					if ( false !== $task ) {
 						$batch->data[ $key ] = $task;
 					} else {

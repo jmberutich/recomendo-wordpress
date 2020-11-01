@@ -5,6 +5,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 require_once plugin_dir_path( __DIR__ ) . 'inc/libraries/recomendo-async-request.php';
 require_once plugin_dir_path( __DIR__ ) . 'inc/libraries/recomendo-background-process.php';
+// Load Recomendo plugin
+//require_once plugin_dir_path( __DIR__ ) . 'recomendo-plugin.php';
 
 class Recomendo_Background_Order_Copy extends Recomendo_Background_Process {
 
@@ -13,6 +15,30 @@ class Recomendo_Background_Order_Copy extends Recomendo_Background_Process {
 	*/
 
 	protected $action = 'order_copy';
+
+
+
+	public function get_total_order_items(){
+        $count = 0;
+        $query_args = array(
+            'fields'         => 'ids',
+            'post_type'      => 'shop_order',
+            'post_status'    => 'any',
+            'posts_per_page' => -1,
+        );
+
+        $order_ids = get_posts( $query_args );
+        if ( sizeof( $order_ids ) > 0 ) {
+            foreach ( $order_ids as $id ) {
+                $order = wc_get_order( $id );
+                $line_items = $order->get_items();
+                foreach ( $line_items as $item ) {
+                    $count++;
+                }
+            }
+        }
+        return $count;
+	}
 
 	/**
 	* Task
@@ -26,11 +52,11 @@ class Recomendo_Background_Order_Copy extends Recomendo_Background_Process {
 	*
 	* @return mixed
 	*/
-
 	protected function task( $item ) {
 
 		// Actions to perform
 		global $recomendo;
+		$total_products = $this->get_total_order_items();
 
 		$order = wc_get_order( $item );
 		$line_items = $order->get_items();
@@ -45,7 +71,7 @@ class Recomendo_Background_Order_Copy extends Recomendo_Background_Process {
 		}
 
 		$response = $recomendo->client->set_user( $userid );
-
+		
 		if ( is_wp_error( $response )) {
 			error_log( "[RECOMENDO] --- Error adding user " . strval( $userid ) . " when recording all orders." );
 			error_log( "[RECOMENDO] --- " . $response->get_error_message() );
@@ -59,6 +85,14 @@ class Recomendo_Background_Order_Copy extends Recomendo_Background_Process {
 				// check product has not been deleted
 				if ( $productid != 0 ) {
 					$response = $recomendo->client->record_user_action( 'buy',  $userid , $productid );
+					
+					$progress =  intVal(get_option('recomendo_progress_background_orders'));
+					$progress++;
+					$percentage = ($progress * 100) / $total_products;
+					update_option('recomendo_progress_background_orders', $progress);
+					update_option('recomendo_orders_background_completed', $percentage);
+					error_log("------[RECOMENDO] PROGRESS BACKGROUND task running orders-".$progress." total product". $total_products);
+
 
 					if ( is_wp_error( $response ) ) {
 						error_log( "[RECOMENDO] --- Error recording buy event for order " . strval($order->get_id()) );
@@ -79,6 +113,7 @@ class Recomendo_Background_Order_Copy extends Recomendo_Background_Process {
 
 	protected function complete() {
 		parent::complete();
+		update_option('recomendo_orders_background_completed', 100);
 		// Show notice to user or perform some other arbitrary task...
 	}
 

@@ -276,24 +276,23 @@ class Recomendo_Admin {
 
     }
 
+
     // This function is only called when our plugin's page loads!
-   public static function load_admin_js_css(){
+    public static function load_admin_js_css(){
        // Unfortunately we can't just enqueue our scripts here - it's too early. So register against the proper action hook to do it
        add_action( 'admin_enqueue_scripts', array( 'Recomendo_Admin', 'admin_enqueue' ) );
+    }
 
-   }
 
-
-   // Enqueue admin css and js
-   public static function admin_enqueue() {
+    // Enqueue admin css and js
+    public static function admin_enqueue() {
        wp_enqueue_style( 'recomendo-admin', plugin_dir_url( __FILE__ ) . 'css/recomendo-admin.css' );
-   }
+    }
 
 
     public static function show_admin_screen() {
         require_once plugin_dir_path( __FILE__ ) . 'screens/dashboard.php';
     }
-
 
 
     public static function show_data_explorer_screen() {

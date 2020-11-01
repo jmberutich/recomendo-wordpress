@@ -22,6 +22,85 @@ class Recomendo_Widget extends WP_Widget {
     }
 
 
+    public function recomendo_locate_template_widget( $template_name, $template_path = '', $default_path = '' , $woo_path='') {
+       
+        // Set variable to search in recomendo folder of theme.
+        if ( ! $template_path ) :
+            $template_path = 'recomendo-templates/';
+        
+        endif;  // Set default plugin templates path.
+        if ( ! $default_path ) :
+            $default_path = plugin_dir_path( __FILE__ ) . 'recomendo-templates/'; // Path to the template folder
+          
+        endif;
+        if(!$woo_path) :
+            $woo_path = WC()->plugin_path(__FILE__) . '/templates/';
+        endif;    
+
+
+        // Search template file in theme folder.
+        $template = locate_template( array(
+            $template_path . $template_name,
+            $template_name ) );
+           
+        
+        if(! $template){
+            $template = $default_path . $template_name;
+        }
+        if( ! file_exists( $template )){
+            $template = $woo_path . $template_name;
+        }
+      
+        return apply_filters( 'recomendo_locate_template', $template, $template_name, $template_path, $default_path, $woo_path );
+    }
+
+
+    public function recomendo_get_template_widget( $template_name, $args = array(), $template_path = '', $default_path = '', $woo_path='') {
+        if ( is_array( $args ) && isset( $args ) ) :
+            extract( $args );
+        endif;
+        $template_file = $this->recomendo_locate_template_widget( $template_name, $template_path, $default_path , $woo_path);
+        if ( ! file_exists( $template_file ) ) :
+            _doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $template_file ), '1.0.0' );
+            return;
+        endif;
+        include $template_file;
+    }
+
+
+        //Get all templates 
+    public function recomendo_all_templates_widget(){
+            //get templates in the theme
+            $templates = wp_get_theme()->get_page_templates();
+            $options = get_option( 'recomendo_options' );
+            //set default template 
+            if($options['post_type'] == 'product'){
+                $array[] = 'content-widget-product';
+            }
+                $array[] = 'widget-recomendo';
+            
+            
+            
+            
+            foreach ( $templates as $template_name => $template_filename )
+            {
+                //if the templates route  has levels eg: folder/file.php removes the '/'
+                $exploded_name = explode('/',$template_name );
+
+                foreach($exploded_name as $expresion){
+                    //Search for the element that has .php and if it does, remove it and add to array
+                    if (preg_match('/(\.php)$/i', $expresion)) {
+                        $new_templateName = substr($expresion,0,-4);
+                        $array[] = $new_templateName;
+                    }
+                }
+
+            }
+            return $array;
+    }
+
+
+
     // Creating widget front-end
 
     public function widget( $args, $instance ) {
@@ -108,7 +187,7 @@ class Recomendo_Widget extends WP_Widget {
             // This is where you run the code and display the output
             // -----------------------------------------------
 
-            if ( class_exists( 'woocommerce' ) ) {
+            if ( class_exists( 'woocommerce' ) && ($options['post_type'] == 'product')) {
                 echo wp_kses_post( apply_filters( 'woocommerce_before_widget_product_list', '<ul class="' . $instance['class'] .  '">' ) );
                 foreach ($response['itemScores'] as $i ) {
                     if ( get_post_status ( $i['item'] ) == 'publish' ) {
@@ -116,7 +195,7 @@ class Recomendo_Widget extends WP_Widget {
                         setup_postdata( $GLOBALS['post'] =& $post_object );
                         // add .php to the template -> woocommerce requires it
                         // but get_template_part does not
-                        wc_get_template( $instance['template'] . '.php', $template_args );
+                        $this->recomendo_get_template_widget( $instance['template'] . '.php' );
                     }
                 }
             } else {
@@ -126,7 +205,7 @@ class Recomendo_Widget extends WP_Widget {
                         $post_object = get_post( $i['item'] );
                         setup_postdata( $GLOBALS['post'] =& $post_object );
                         // REPLACE by custom parameter
-                        get_template_part( $instance['template'] );
+                        $this->recomendo_get_template_widget( $instance['template'].'.php' );
 
                     }
                 }
@@ -173,10 +252,10 @@ class Recomendo_Widget extends WP_Widget {
             $template = $instance[ 'template' ];
         }
         else {
-            if ( class_exists( 'woocommerce' ) ) {
+            if ( (class_exists( 'woocommerce' )) && ($options['post_type'] == 'product') ) {
                 $template = __( 'content-widget-product', 'recomendo_widget_domain' );
             } else {
-                $template = __( 'content-' . $recomendo->options['post_type'] , 'recomendo_widget_domain' );
+                $template = __( 'widget-recomendo' , 'recomendo_widget_domain' );
             }
         }
 
@@ -224,7 +303,18 @@ class Recomendo_Widget extends WP_Widget {
 
         <p>
             <label for="<?php echo $this->get_field_id( 'template' ); ?>"><?php _e( 'Template part:' ); ?></label>
-            <input class="widefat" id="<?php echo $this->get_field_id( 'template' ); ?>" name="<?php echo $this->get_field_name( 'template' ); ?>" type="text" value="<?php echo esc_attr( $template ); ?>" />
+            <select class="widefat" id="<?php echo $this->get_field_id( 'template' ); ?>" name="<?php echo $this->get_field_name( 'template' ); ?>" value="<?php echo esc_attr( $template ); ?>" >
+                <?php $options= $this->recomendo_all_templates_widget(); 
+                foreach( $options as $option){
+                    $html = '<option value="'. $option .'"';
+                    if($option == $instance['template']){
+                        $html .= 'selected';
+                    }
+                    $html .= '>'. $option . '</option>';
+                    echo $html;
+                }
+                ?>
+            </select>
         </p>
 
         <p>
@@ -243,7 +333,7 @@ class Recomendo_Widget extends WP_Widget {
         $instance['type'] = ( ! empty( $new_instance['type'] ) ) ? strip_tags( $new_instance['type'] ) : '';
         $instance['number'] = ( ! empty( $new_instance['number'] ) ) ? strip_tags( $new_instance['number'] ) : '';
 
-        $instance['template'] = ( ! empty( $new_instance['template'] ) ) ? str_replace( '.php', '', strip_tags( $new_instance['template'] ) ) : '';
+        $instance['template'] = ( ! empty( $new_instance['template'] ) ) ? strip_tags(  $new_instance['template'] ) : '';
         $instance['class'] = ( ! empty( $new_instance['class'] ) ) ? strip_tags( $new_instance['class'] ) : '';
 
         return $instance;

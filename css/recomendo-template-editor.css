@@ -1,0 +1,42 @@
+
+
+/* Content-Product styles for WooCommerce */
+
+.recomendo-editor-preview li{
+    display: inline-block;
+    margin:0 3.8% 2.992em 0;
+    padding:10px;
+    position:relative;
+    width:28.75%;
+    margin-left:0;
+    background-color: #ccc;
+    border-radius: 5px;
+    color: #fff;
+}
+
+.recomendo-editor-preview li.first{
+    clear:both
+}
+.recomendo-editor-preview li.last{
+    margin-right:0
+}
+.columns-1 li{
+    width:100% !important ;margin-right:0 !important;
+}
+.columns-2 li{
+    width:46% !important;
+}
+.columns-3 li{
+    width:28.75% !important;
+}
+.columns-4 li{
+    width: 21% !important;
+}
+.columns-5 li{
+    width: 16.05% !important;
+}
+.columns-6 li{
+    width:12.05% !important;
+}
+
+/*End WooCommerce Styles */
