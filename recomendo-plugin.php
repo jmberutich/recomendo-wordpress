@@ -103,7 +103,9 @@ class Recomendo_Plugin {
                 add_action( 'woocommerce_product_set_visibility', array( $this, 'add_item' ), 10, 1 );
         }
 
+
     } //end of method
+
 
 
 
@@ -249,19 +251,21 @@ class Recomendo_Plugin {
             case 'complementary' :
                 $itemset_products = array();
                 if ( class_exists( 'woocommerce' ) ) {
-                    global $woocommerce;
-                    foreach ( $woocommerce->cart->get_cart() as $cart_item_key => $values ) {
+
+                global $woocommerce;
+                    foreach ($woocommerce->cart->get_cart() as $cart_item_key => $values) {
 
                         // Check if WPML is installed and get the id of the original language post (not translation)
-                        if ( function_exists('icl_object_id') ) {
+                        if (function_exists('icl_object_id')) {
                             global $sitepress;
-                            $itemset_products[] = icl_object_id( $values['product_id'], 'product', true, $sitepress->get_default_language() );
+                            $itemset_products[] = icl_object_id($values['product_id'], 'product', true, $sitepress->get_default_language());
                         } else {
                             $itemset_products[] = $values['product_id'];
                         }
                     }
 
-                    $response = $this->get_itemset_recommendations( $itemset_products, intval( $a['number'] ) );
+                    $response = $this->get_itemset_recommendations($itemset_products, intval($a['number']));
+
                 } else {
                     if ( have_posts() ) {
                         while ( have_posts() ) {
@@ -269,12 +273,12 @@ class Recomendo_Plugin {
                             // Check if WPML is installed and get the id of the original language post (not translation)
                             if ( function_exists('icl_object_id') ) {
                                 global $sitepress;
-                                $itemset_products[] = icl_object_id( get_the_ID(), $options['post_type'], true, $sitepress->get_default_language() );
+                                $itemset_products[] = icl_object_id( get_the_ID(), $this->options['post_type'], true, $sitepress->get_default_language() );
                             } else {
                                 $itemset_products[] = get_the_ID();
                             }
                         }
-                        $response = $recomendo->get_itemset_recommendations( $itemset_products, intval( $instance['number'] ) );
+                        $response = $this->get_itemset_recommendations( $itemset_products, intval( $a['number'] ) );
                     } else {
                         echo '<p>no posts to show</p>';
                     }
@@ -373,7 +377,7 @@ class Recomendo_Plugin {
 
         $resp = $this->get_itemset_recommendations( $itemset_products, $args['posts_per_page'] );
 
-        if ( $resp != false ) {
+        if ( $resp != false and array_key_exists( 'itemScores', $resp ) ) {
             if ( sizeof( $resp['itemScores'] ) > 0 ) {
                 foreach ($resp['itemScores'] as $i ) {
                     $related_products[] = $i['item'];

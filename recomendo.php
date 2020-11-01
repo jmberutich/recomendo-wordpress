@@ -4,9 +4,9 @@
 * Plugin URI: https://www.recomendo.ai
 * Description: Make your website smart with Artificial Intelligence recommendations.
 * Author: Recomendo
-* Version: 1.0.5
+* Version: 1.0.6
 * Requires at least: 4.7
-* Tested up to: 5.0
+* Tested up to: 5.1
 * WC requires at least: 3.0
 * WC tested up to: 3.5
 * License: GPLv2
